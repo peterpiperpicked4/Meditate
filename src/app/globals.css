@@ -1,0 +1,554 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;1,8..60,400&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Midnight Library - Dark, warm, contemplative */
+    --background: 25 18% 8%;
+    --foreground: 35 25% 92%;
+    --card: 25 15% 11%;
+    --card-foreground: 35 25% 92%;
+    --popover: 25 18% 10%;
+    --popover-foreground: 35 25% 92%;
+
+    /* Amber/Gold - candlelight warmth */
+    --primary: 32 65% 58%;
+    --primary-foreground: 25 18% 8%;
+
+    /* Muted sage - natural, grounding */
+    --secondary: 80 12% 25%;
+    --secondary-foreground: 35 25% 92%;
+
+    --muted: 25 12% 16%;
+    --muted-foreground: 35 15% 55%;
+
+    /* Warm amber for accents */
+    --accent: 38 72% 55%;
+    --accent-foreground: 25 18% 8%;
+
+    --destructive: 0 55% 50%;
+    --destructive-foreground: 35 25% 92%;
+
+    --border: 25 12% 18%;
+    --input: 25 12% 15%;
+    --ring: 32 65% 58%;
+    --radius: 0.375rem;
+
+    /* Custom properties for enhanced theming */
+    --glow: 32 80% 50%;
+    --ember: 20 90% 45%;
+    --sage: 90 20% 40%;
+    --parchment: 40 30% 90%;
+    --ink: 25 25% 12%;
+
+    /* Semantic color tokens */
+    --success: 142 70% 45%;
+    --success-foreground: 142 70% 95%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 38 92% 10%;
+    --info: 199 89% 48%;
+    --info-foreground: 199 89% 95%;
+    --danger: 0 72% 51%;
+    --danger-foreground: 0 72% 95%;
+
+    /* Callout backgrounds (dark theme optimized) */
+    --callout-warning-bg: 38 60% 15%;
+    --callout-warning-border: 38 60% 25%;
+    --callout-warning-text: 38 80% 70%;
+    --callout-warning-title: 38 80% 80%;
+
+    --callout-success-bg: 142 50% 12%;
+    --callout-success-border: 142 50% 22%;
+    --callout-success-text: 142 60% 65%;
+    --callout-success-title: 142 60% 75%;
+
+    --callout-danger-bg: 0 50% 15%;
+    --callout-danger-border: 0 50% 25%;
+    --callout-danger-text: 0 70% 70%;
+    --callout-danger-title: 0 70% 80%;
+
+    --callout-info-bg: 199 50% 15%;
+    --callout-info-border: 199 50% 25%;
+    --callout-info-text: 199 70% 70%;
+    --callout-info-title: 199 70% 80%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-feature-settings: "rlig" 1, "calt" 1, "liga" 1;
+    line-height: 1.7;
+    letter-spacing: 0.01em;
+    /* Subtle paper grain texture for depth */
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    background-blend-mode: soft-light;
+    background-size: 200px 200px;
+  }
+
+  /* Extra grain layer for more depth on main content */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.015;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    mix-blend-mode: overlay;
+  }
+
+  /* Elegant display typography */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+  }
+
+  h1 {
+    font-weight: 600;
+    letter-spacing: -0.03em;
+  }
+
+  /* Monospace for numbers/timers */
+  .font-mono, code, pre, .timer-display {
+    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    font-feature-settings: "tnum" 1;
+  }
+}
+
+/* ===== ATMOSPHERE & TEXTURE ===== */
+
+/* Subtle grain overlay for depth */
+.grain {
+  position: relative;
+}
+
+.grain::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  opacity: 0.03;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Warm ambient glow effect */
+.ambient-glow {
+  position: relative;
+}
+
+.ambient-glow::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 150%;
+  height: 100%;
+  background: radial-gradient(
+    ellipse at center,
+    hsla(var(--glow), 0.08) 0%,
+    transparent 70%
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ===== CUSTOM COMPONENTS ===== */
+
+/* Elegant divider */
+.divider {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    hsl(var(--border)) 20%,
+    hsl(var(--primary) / 0.3) 50%,
+    hsl(var(--border)) 80%,
+    transparent
+  );
+}
+
+/* Contemplative card style */
+.card-contemplative {
+  background: linear-gradient(
+    145deg,
+    hsl(var(--card)) 0%,
+    hsl(var(--card) / 0.8) 100%
+  );
+  border: 1px solid hsl(var(--border));
+  box-shadow:
+    0 4px 20px -4px hsla(0, 0%, 0%, 0.3),
+    inset 0 1px 0 0 hsla(var(--primary), 0.05);
+}
+
+/* Warm border accent */
+.border-warm {
+  border-color: hsl(var(--primary) / 0.2);
+}
+
+/* ===== ANIMATIONS ===== */
+
+/* Candle flicker - for timer active state (optimized: opacity only) */
+@keyframes candle-flicker {
+  0%, 100% {
+    opacity: 1;
+  }
+  25% {
+    opacity: 0.97;
+  }
+  50% {
+    opacity: 1;
+  }
+  75% {
+    opacity: 0.98;
+  }
+}
+
+/* Breathing glow - for meditation timer */
+@keyframes breath-glow {
+  0%, 100% {
+    box-shadow:
+      0 0 30px hsla(var(--primary), 0.15),
+      0 0 60px hsla(var(--primary), 0.08),
+      inset 0 0 30px hsla(var(--primary), 0.05);
+  }
+  50% {
+    box-shadow:
+      0 0 50px hsla(var(--primary), 0.25),
+      0 0 100px hsla(var(--primary), 0.12),
+      inset 0 0 50px hsla(var(--primary), 0.08);
+  }
+}
+
+/* Gentle fade in */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Staggered reveal */
+@keyframes reveal-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Subtle scale */
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Breathing background - very slow, subtle warmth shift (optimized: opacity only) */
+@keyframes breathe-ambient {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.97;
+  }
+}
+
+.breathe-ambient {
+  animation: breathe-ambient 30s ease-in-out infinite;
+  will-change: opacity;
+}
+
+/* Timer active state */
+.timer-active {
+  animation: breath-glow 4s ease-in-out infinite, candle-flicker 3s ease-in-out infinite;
+}
+
+/* Animation utilities */
+.animate-fade-in {
+  animation: fade-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-reveal-up {
+  animation: reveal-up 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Stagger delays */
+.delay-1 { animation-delay: 0.1s; opacity: 0; }
+.delay-2 { animation-delay: 0.2s; opacity: 0; }
+.delay-3 { animation-delay: 0.3s; opacity: 0; }
+.delay-4 { animation-delay: 0.4s; opacity: 0; }
+.delay-5 { animation-delay: 0.5s; opacity: 0; }
+
+/* ===== INTERACTIVE STATES ===== */
+
+/* Warm hover glow */
+.hover-glow {
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.hover-glow:hover {
+  box-shadow: 0 0 20px hsla(var(--primary), 0.15);
+  border-color: hsl(var(--primary) / 0.3);
+}
+
+/* Enhanced card hover - subtle lift and glow like candlelight catching paper */
+.card-hover {
+  transition:
+    transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 8px 30px -8px hsla(var(--primary), 0.15),
+    0 0 40px -15px hsla(var(--primary), 0.1);
+  border-color: hsl(var(--primary) / 0.25);
+}
+
+.card-hover:active {
+  transform: translateY(0);
+  transition-duration: 0.1s;
+}
+
+/* Link underline animation */
+.link-underline {
+  position: relative;
+  text-decoration: none;
+}
+
+.link-underline::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 1px;
+  background: linear-gradient(90deg, hsl(var(--primary)), hsl(var(--accent)));
+  transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.link-underline:hover::after {
+  width: 100%;
+}
+
+/* Button press effect */
+.btn-press {
+  transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-press:active {
+  transform: scale(0.97);
+}
+
+/* Focus states - enhanced for accessibility */
+.focus-ring {
+  @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+}
+
+/* Global focus-visible styles for all interactive elements */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[role="button"]:focus-visible,
+[role="link"]:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 2px;
+}
+
+/* Remove default outline since we're using custom focus styles */
+button:focus,
+a:focus,
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+}
+
+/* Minimum touch target size - 44x44px for WCAG compliance */
+.touch-target {
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Touch target for icon buttons */
+.touch-target-icon {
+  position: relative;
+}
+
+.touch-target-icon::before {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border-radius: inherit;
+}
+
+/* ===== TIMER SPECIFIC ===== */
+
+.timer-display {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.05em;
+}
+
+.timer-ring {
+  stroke-linecap: round;
+  transition: stroke-dashoffset 1s linear;
+}
+
+.timer-bg-ring {
+  stroke: hsl(var(--muted));
+}
+
+.timer-progress-ring {
+  stroke: url(#timerGradient);
+  filter: drop-shadow(0 0 8px hsla(var(--primary), 0.4));
+}
+
+/* ===== SCROLLBAR ===== */
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(var(--background));
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted));
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground));
+}
+
+/* ===== SELECTION ===== */
+
+::selection {
+  background: hsl(var(--primary) / 0.25);
+  color: hsl(var(--foreground));
+}
+
+/* ===== REDUCED MOTION ===== */
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .timer-active {
+    animation: none;
+    box-shadow: 0 0 30px hsla(var(--primary), 0.2);
+  }
+}
+
+/* ===== PROSE TYPOGRAPHY ===== */
+
+.prose-contemplative {
+  --tw-prose-body: hsl(var(--foreground));
+  --tw-prose-headings: hsl(var(--foreground));
+  --tw-prose-lead: hsl(var(--muted-foreground));
+  --tw-prose-links: hsl(var(--primary));
+  --tw-prose-bold: hsl(var(--foreground));
+  --tw-prose-counters: hsl(var(--muted-foreground));
+  --tw-prose-bullets: hsl(var(--primary) / 0.6);
+  --tw-prose-hr: hsl(var(--border));
+  --tw-prose-quotes: hsl(var(--foreground));
+  --tw-prose-quote-borders: hsl(var(--primary) / 0.5);
+  --tw-prose-code: hsl(var(--foreground));
+  --tw-prose-th-borders: hsl(var(--border));
+  --tw-prose-td-borders: hsl(var(--border));
+}
+
+/* ===== UTILITY CLASSES ===== */
+
+@layer utilities {
+  /* Hide scrollbar utility */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .text-gradient {
+    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .bg-gradient-warm {
+    background: linear-gradient(
+      135deg,
+      hsl(var(--background)) 0%,
+      hsl(25 20% 10%) 100%
+    );
+  }
+
+  .bg-gradient-radial {
+    background: radial-gradient(
+      ellipse at top,
+      hsl(var(--card)) 0%,
+      hsl(var(--background)) 70%
+    );
+  }
+}
