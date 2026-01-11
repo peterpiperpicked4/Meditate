@@ -22,6 +22,7 @@ const footerLinks = {
   ],
   about: [
     { name: 'About', href: '/about' },
+    { name: 'My Practice', href: '/my-practice' },
     { name: 'Disclaimer', href: '/disclaimer' },
   ],
 }

@@ -12,11 +12,10 @@ const navigation = [
   { name: 'The Path', href: '/path' },
   { name: 'Practice', href: '/practice' },
   { name: 'Techniques', href: '/techniques' },
+  { name: 'My Practice', href: '/my-practice' },
   { name: 'Troubleshooting', href: '/troubleshooting' },
-  { name: 'Advanced', href: '/advanced' },
   { name: 'Science', href: '/science' },
   { name: 'Resources', href: '/resources' },
-  { name: 'Journey', href: '/journey' },
 ]
 
 export function Header() {
