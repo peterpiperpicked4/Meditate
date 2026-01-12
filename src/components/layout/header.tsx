@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 const navigation = [
   { name: 'Start Here', href: '/start' },
   { name: 'Practice', href: '/practice' },
+  { name: 'Breathe', href: '/breathe' },
   { name: 'Techniques', href: '/techniques' },
 ]
 

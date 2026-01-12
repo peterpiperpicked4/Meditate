@@ -2,7 +2,9 @@
 
 import * as React from 'react'
 import { Suspense } from 'react'
+import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
+import { Wind } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { TimerTab } from '@/components/practice/timer-tab'
 import { PlansTab } from '@/components/practice/plans-tab'
@@ -58,6 +60,20 @@ export default function PracticePage() {
         <p className="mt-2 text-muted-foreground">
           Timer, plans, session log, and journaling—all in one place.
         </p>
+
+        {/* Paced breathing callout */}
+        <Link
+          href="/breathe"
+          className="mt-4 flex items-center gap-3 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 transition-colors hover:bg-primary/10 hover:border-primary/30"
+        >
+          <Wind className="h-5 w-5 text-primary" />
+          <div className="flex-1">
+            <span className="text-sm font-medium">Try Paced Breathing</span>
+            <span className="ml-2 text-sm text-muted-foreground">
+              Guided breath patterns for calm and focus
+            </span>
+          </div>
+        </Link>
 
         <Suspense fallback={<TabsSkeleton />}>
           <PracticeContent />
