@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import Link from 'next/link'
-import { ArrowRight, Wind, Scan, Tag, Eye, Heart, Footprints, Sparkles, Timer } from 'lucide-react'
+import { ArrowRight, Wind, Scan, Tag, Eye, Heart, Footprints, Sparkles, Timer, Hand, Sun } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 
@@ -86,6 +86,26 @@ const techniques = [
     duration: '3-10 min',
     stages: ['0', '1', '2'],
     whenToUse: 'As a quick session, warm-up, or daily life micro-practice.',
+  },
+  {
+    slug: 'bilateral-grounding',
+    title: 'Bilateral Grounding',
+    description: 'Left-right tapping for quick nervous system reset and grounding.',
+    icon: Hand,
+    difficulty: 'beginner' as const,
+    duration: '1-3 min',
+    stages: ['0', '1', '2', '3', '4', '5'],
+    whenToUse: 'Quick reset when anxious, before meditation, or to come back from dissociation.',
+  },
+  {
+    slug: 'safe-place',
+    title: 'Safe Place Close',
+    description: 'Closing visualization with warm light scan for regulation.',
+    icon: Sun,
+    difficulty: 'beginner' as const,
+    duration: '2-5 min',
+    stages: ['0', '1', '2', '3', '4', '5'],
+    whenToUse: 'End any session with regulation, after difficult practice, or before sleep.',
   },
 ]
 

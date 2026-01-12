@@ -239,6 +239,80 @@ export default function BodyScanPage() {
           </div>
         </div>
 
+        {/* Trauma-Sensitive Approach */}
+        <div className="mt-12">
+          <h2 className="text-2xl font-bold">Trauma-Sensitive Approach</h2>
+          <p className="mt-3 text-muted-foreground">
+            Body scan can be adapted for those with trauma histories or anyone who finds
+            intense body awareness overwhelming. This &quot;somatic overlay&quot; reframes
+            the practice as <em>felt-sense training</em>—building capacity to notice sensations
+            without being overwhelmed by them.
+          </p>
+
+          <div className="mt-6 space-y-4">
+            <Card className="border-primary/20">
+              <CardContent className="pt-6">
+                <h4 className="font-semibold text-primary">Eyes-Open Option</h4>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Keep eyes open with a soft downward gaze. This maintains connection
+                  to the external environment and can reduce dissociation risk. You can
+                  also look around the room periodically to stay grounded.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-primary/20">
+              <CardContent className="pt-6">
+                <h4 className="font-semibold text-primary">Titration</h4>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Don&apos;t dive deep. &quot;Touch&quot; each area briefly—just enough to notice
+                  something—then move on. You can always return later with more attention.
+                  This prevents overwhelm and builds tolerance gradually.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-primary/20">
+              <CardContent className="pt-6">
+                <h4 className="font-semibold text-primary">Felt-Sense Focus</h4>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  The goal is <em>contact</em>, not relaxation. You&apos;re building the ability
+                  to notice where anxiety, tension, or discomfort lives—so you can catch it
+                  before it hijacks behavior. Don&apos;t argue with sensations. Don&apos;t fix them.
+                  Just notice: &quot;This is where it lives right now.&quot;
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-primary/20">
+              <CardContent className="pt-6">
+                <h4 className="font-semibold text-primary">Sensory Anchors</h4>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Keep grounding tools nearby: a smooth stone to hold, essential oils to smell,
+                  or your feet firmly on the floor. If you start spacing out or feel overwhelmed,
+                  use these to return to the present. Tap your feet if you need to come back quickly.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-primary/20">
+              <CardContent className="pt-6">
+                <h4 className="font-semibold text-primary">Permission to Skip</h4>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  If a body region feels &quot;charged&quot; or unsafe, skip it. You can say internally:
+                  &quot;I notice there&apos;s something here. I&apos;m choosing to move on.&quot; This is
+                  not avoidance—it&apos;s respecting your window of tolerance.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <p className="mt-6 text-sm text-muted-foreground">
+            For more on this approach, see <Link href="/my-practice" className="text-primary underline">My Practice</Link>,
+            which includes additional somatic exercises from therapy.
+          </p>
+        </div>
+
         <div className="mt-12 text-center">
           <Button size="lg" asChild>
             <Link href="/practice">

@@ -1,6 +1,6 @@
 import { Metadata } from 'next'
 import Link from 'next/link'
-import { Brain, Moon, Frown, HelpCircle, Zap, Heart } from 'lucide-react'
+import { Brain, Moon, Frown, HelpCircle, Zap, Heart, CloudFog } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Accordion,
@@ -239,6 +239,49 @@ const issues = [
       stop the session. Ground yourself by feeling your feet, looking around the room, or
       naming objects you see. For trauma histories or intense emotional material, working with
       a therapist experienced in meditation is recommended.`,
+  },
+  {
+    id: 'dissociation',
+    title: 'Spacing Out / Dissociation',
+    icon: CloudFog,
+    description: 'Feeling disconnected, foggy, or "not here"',
+    whatsHappening: `Dissociation is a disconnection from present experience—feeling foggy, floaty,
+      numb, or like you're watching yourself from outside. It's different from dullness (sleepy fog)
+      because it involves a sense of unreality or disconnection from the body.
+
+      Some spacing out during meditation is normal. But if you regularly "leave" during practice,
+      or if you feel unable to stay present, that's worth addressing. Dissociation is often a
+      protective response—the nervous system's way of handling overwhelm.`,
+    interventions: [
+      {
+        title: 'Open your eyes immediately',
+        detail: 'Eyes open reconnects you to external reality. Look around the room and name 5 things you can see.',
+      },
+      {
+        title: 'Tap your feet on the floor',
+        detail: 'Alternating left-right foot taps help ground you back in the body. 20-40 taps, then pause and check in.',
+      },
+      {
+        title: 'Use sensory anchors',
+        detail: 'Keep a smooth stone, essential oil, or textured object nearby. Touch and smell bring you back to the present through immediate body contact.',
+      },
+      {
+        title: 'Try bilateral grounding',
+        detail: 'Butterfly taps (crossing arms and tapping shoulders left-right) can help regulate the nervous system. See the Bilateral Grounding technique.',
+      },
+      {
+        title: 'Shorten sessions',
+        detail: 'Practice for 3-5 minutes instead of longer. Build tolerance gradually. Leaving before dissociation starts is better than pushing through.',
+      },
+      {
+        title: 'Keep eyes open during practice',
+        detail: 'Soft downward gaze maintains connection to external environment. This can prevent dissociation before it starts.',
+      },
+    ],
+    whenToStop: `If dissociation happens frequently or intensely, pause meditation practice and
+      work with a trauma-informed therapist. Dissociation during meditation can indicate that the
+      practice is triggering overwhelm that the nervous system can't handle. This isn't failure—it's
+      important information. With proper support, you can build capacity and return to practice safely.`,
   },
 ]
 
