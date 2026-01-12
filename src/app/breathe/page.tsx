@@ -12,7 +12,7 @@ import {
   BREATH_PRESETS,
   DEFAULT_BREATHING_SETTINGS,
   BREATHING_STORAGE_KEYS,
-  getCycleDuration,
+  SoundProfile,
 } from '@/lib/breathing'
 import { cn } from '@/lib/utils'
 
@@ -24,6 +24,7 @@ export default function BreathePage() {
   const [pattern, setPattern] = React.useState<BreathPattern>(DEFAULT_PATTERN)
   const [durationMinutes, setDurationMinutes] = React.useState(5)
   const [soundEnabled, setSoundEnabled] = React.useState(DEFAULT_BREATHING_SETTINGS.soundEnabled)
+  const [soundProfile, setSoundProfile] = React.useState<SoundProfile>('singing-bowl')
   const [hapticEnabled, setHapticEnabled] = React.useState(DEFAULT_BREATHING_SETTINGS.hapticEnabled)
   const [showSettings, setShowSettings] = React.useState(true)
   const [sessionComplete, setSessionComplete] = React.useState(false)
@@ -36,6 +37,7 @@ export default function BreathePage() {
       if (savedSettings) {
         const settings = JSON.parse(savedSettings)
         setSoundEnabled(settings.soundEnabled ?? DEFAULT_BREATHING_SETTINGS.soundEnabled)
+        setSoundProfile(settings.soundProfile ?? 'singing-bowl')
         setHapticEnabled(settings.hapticEnabled ?? DEFAULT_BREATHING_SETTINGS.hapticEnabled)
         setDurationMinutes(settings.defaultDuration ?? DEFAULT_BREATHING_SETTINGS.defaultDuration)
       }
@@ -63,6 +65,7 @@ export default function BreathePage() {
         BREATHING_STORAGE_KEYS.settings,
         JSON.stringify({
           soundEnabled,
+          soundProfile,
           hapticEnabled,
           defaultDuration: durationMinutes,
         })
@@ -70,7 +73,7 @@ export default function BreathePage() {
     } catch (e) {
       // Storage not available
     }
-  }, [soundEnabled, hapticEnabled, durationMinutes])
+  }, [soundEnabled, soundProfile, hapticEnabled, durationMinutes])
 
   // Save pattern when it changes
   React.useEffect(() => {
@@ -108,6 +111,7 @@ export default function BreathePage() {
     pattern,
     duration: durationMinutes * 60,
     soundEnabled,
+    soundProfile,
     hapticEnabled,
     onComplete: handleComplete,
   })
@@ -278,6 +282,8 @@ export default function BreathePage() {
                     onDurationChange={setDurationMinutes}
                     soundEnabled={soundEnabled}
                     onSoundToggle={() => setSoundEnabled(!soundEnabled)}
+                    soundProfile={soundProfile}
+                    onSoundProfileChange={setSoundProfile}
                     hapticEnabled={hapticEnabled}
                     onHapticToggle={() => setHapticEnabled(!hapticEnabled)}
                     disabled={timer.isRunning && !timer.isPaused}

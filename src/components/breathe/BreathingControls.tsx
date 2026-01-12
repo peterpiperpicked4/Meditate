@@ -1,11 +1,11 @@
 'use client'
 
 import * as React from 'react'
-import { BreathPattern, BREATH_PRESETS, getCycleDuration } from '@/lib/breathing'
+import { BreathPattern, BREATH_PRESETS, getCycleDuration, SoundProfile, SOUND_PROFILES } from '@/lib/breathing'
 import { Slider } from '@/components/ui/slider'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { Volume2, VolumeX, Smartphone } from 'lucide-react'
+import { Volume2, VolumeX, Smartphone, Music } from 'lucide-react'
 
 interface BreathingControlsProps {
   pattern: BreathPattern
@@ -14,6 +14,8 @@ interface BreathingControlsProps {
   onDurationChange: (minutes: number) => void
   soundEnabled: boolean
   onSoundToggle: () => void
+  soundProfile: SoundProfile
+  onSoundProfileChange: (profile: SoundProfile) => void
   hapticEnabled: boolean
   onHapticToggle: () => void
   disabled?: boolean
@@ -26,6 +28,8 @@ export function BreathingControls({
   onDurationChange,
   soundEnabled,
   onSoundToggle,
+  soundProfile,
+  onSoundProfileChange,
   hapticEnabled,
   onHapticToggle,
   disabled = false,
@@ -192,6 +196,35 @@ export function BreathingControls({
           <span>30 min</span>
         </div>
       </div>
+
+      {/* Sound profile selector */}
+      {soundEnabled && (
+        <div>
+          <h3 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
+            <Music className="h-4 w-4" />
+            Sound Style
+          </h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {SOUND_PROFILES.map((profile) => (
+              <button
+                key={profile.id}
+                onClick={() => onSoundProfileChange(profile.id)}
+                className={cn(
+                  'p-3 rounded-lg border text-left transition-all min-h-[44px]',
+                  soundProfile === profile.id
+                    ? 'border-primary bg-primary/10 text-foreground'
+                    : 'border-border/50 bg-card/30 text-muted-foreground hover:border-primary/50 hover:bg-card/50'
+                )}
+              >
+                <span className="text-sm font-medium block">{profile.name}</span>
+                <span className="text-xs text-muted-foreground block mt-0.5 line-clamp-1">
+                  {profile.description}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Settings toggles */}
       <div className="flex items-center gap-4 pt-2">

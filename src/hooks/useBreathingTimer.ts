@@ -4,6 +4,7 @@ import { useState, useCallback, useRef, useEffect } from 'react'
 import {
   BreathPhase,
   BreathPattern,
+  SoundProfile,
   getActivePhases,
   getCycleDuration,
   playPhaseSound,
@@ -27,6 +28,7 @@ interface UseBreathingTimerOptions {
   duration: number                // total session duration in seconds
   soundEnabled?: boolean
   soundVolume?: number
+  soundProfile?: SoundProfile
   hapticEnabled?: boolean
   onComplete?: (breathCount: number) => void
   onPhaseChange?: (phase: BreathPhase) => void
@@ -37,6 +39,7 @@ export function useBreathingTimer({
   duration,
   soundEnabled = true,
   soundVolume = 0.3,
+  soundProfile = 'singing-bowl',
   hapticEnabled = true,
   onComplete,
   onPhaseChange,
@@ -88,14 +91,14 @@ export function useBreathingTimer({
     }))
 
     if (soundEnabled) {
-      playPhaseSound(phase.phase, soundVolume)
+      playPhaseSound(phase.phase, soundVolume, soundProfile)
     }
     if (hapticEnabled) {
       vibrate(phase.phase === 'inhale' || phase.phase === 'exhale' ? 50 : 30)
     }
 
     onPhaseChange?.(phase.phase)
-  }, [soundEnabled, soundVolume, hapticEnabled, onPhaseChange])
+  }, [soundEnabled, soundVolume, soundProfile, hapticEnabled, onPhaseChange])
 
   const tick = useCallback((timestamp: number) => {
     if (!lastTimeRef.current) {
@@ -121,7 +124,7 @@ export function useBreathingTimer({
           const firstPhase = phases[0]
 
           if (soundEnabled) {
-            playPhaseSound(firstPhase.phase, soundVolume)
+            playPhaseSound(firstPhase.phase, soundVolume, soundProfile)
           }
           if (hapticEnabled) {
             vibrate(50)
@@ -142,7 +145,7 @@ export function useBreathingTimer({
         const prevSecond = Math.ceil(prevState.phaseTimeRemaining)
         const newSecond = Math.ceil(newCountdown)
         if (prevSecond !== newSecond && soundEnabled) {
-          playPhaseSound('countdown', soundVolume)
+          playPhaseSound('countdown', soundVolume, soundProfile)
         }
 
         return {
@@ -192,7 +195,7 @@ export function useBreathingTimer({
         newPhaseTime = nextPhase.duration
 
         if (soundEnabled) {
-          playPhaseSound(nextPhase.phase, soundVolume)
+          playPhaseSound(nextPhase.phase, soundVolume, soundProfile)
         }
         if (hapticEnabled) {
           vibrate(nextPhase.phase === 'inhale' || nextPhase.phase === 'exhale' ? 50 : 30)
@@ -215,7 +218,7 @@ export function useBreathingTimer({
     })
 
     animationRef.current = requestAnimationFrame(tick)
-  }, [soundEnabled, soundVolume, hapticEnabled, onComplete, onPhaseChange])
+  }, [soundEnabled, soundVolume, soundProfile, hapticEnabled, onComplete, onPhaseChange])
 
   const start = useCallback(() => {
     // Reset state
