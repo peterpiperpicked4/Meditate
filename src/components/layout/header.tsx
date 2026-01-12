@@ -9,13 +9,8 @@ import { Button } from '@/components/ui/button'
 
 const navigation = [
   { name: 'Start Here', href: '/start' },
-  { name: 'The Path', href: '/path' },
   { name: 'Practice', href: '/practice' },
   { name: 'Techniques', href: '/techniques' },
-  { name: 'My Practice', href: '/my-practice' },
-  { name: 'Troubleshooting', href: '/troubleshooting' },
-  { name: 'Science', href: '/science' },
-  { name: 'Resources', href: '/resources' },
 ]
 
 export function Header() {
