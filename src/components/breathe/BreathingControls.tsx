@@ -103,7 +103,7 @@ export function BreathingControls({
   }, [])
 
   return (
-    <div className={cn('space-y-6', disabled && 'opacity-50')} aria-disabled={disabled}>
+    <div className={cn('space-y-6', disabled && 'opacity-50 pointer-events-none')} aria-disabled={disabled}>
       {/* Presets */}
       <div>
         <h3 className="text-sm font-medium text-muted-foreground mb-3">Pattern</h3>
@@ -142,7 +142,7 @@ export function BreathingControls({
       </p>
 
       {/* Pattern timing display */}
-      <div className="flex items-center justify-center gap-2 text-lg font-mono py-3 px-4 rounded-lg bg-muted/30">
+      <div className="flex items-center justify-center gap-2 text-lg font-mono py-3 px-4 rounded-lg bg-muted/30 flex-wrap">
         <span className="text-primary">{pattern.inhale}s</span>
         <span className="text-muted-foreground">in</span>
         {pattern.hold1 > 0 && (
@@ -302,10 +302,10 @@ export function BreathingControls({
                 max={10}
                 step={1}
                 disabled={disabled}
-                aria-valuetext={`${rampDuration} minutes to reach target`}
+                aria-valuetext={`${rampDuration} minutes to reach full ${pattern.name} pattern`}
                 className="[&_[role=slider]]:h-5 [&_[role=slider]]:w-5"
               />
-              <p className="mt-1 text-xs text-muted-foreground">
+              <p className="mt-1 text-xs text-muted-foreground" aria-hidden="true">
                 Time to reach full {pattern.name} pattern
               </p>
             </div>
@@ -340,6 +340,7 @@ export function BreathingControls({
                   }}
                   className={cn(
                     'p-3 rounded-lg border text-left transition-all min-h-[44px] relative group cursor-pointer',
+                    'focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2',
                     soundProfile === profile.id
                       ? 'border-primary bg-primary/10 text-foreground'
                       : 'border-border/50 bg-card/30 text-muted-foreground hover:border-primary/50 hover:bg-card/50',
@@ -357,10 +358,10 @@ export function BreathingControls({
                       e.stopPropagation()
                       handlePreviewSound(profile.id)
                     }}
-                    className="absolute top-2 right-2 p-1.5 rounded-md opacity-40 sm:opacity-0 sm:group-hover:opacity-100 hover:opacity-100 hover:bg-primary/20 transition-opacity touch-manipulation"
+                    className="absolute top-1 right-1 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-md opacity-40 sm:opacity-0 sm:group-hover:opacity-100 hover:opacity-100 hover:bg-primary/20 transition-opacity touch-manipulation"
                     aria-label={`Preview ${profile.name} sound`}
                   >
-                    <Play className="h-3 w-3" aria-hidden="true" />
+                    <Play className="h-4 w-4" aria-hidden="true" />
                   </button>
                 </div>
               ))}
@@ -456,6 +457,7 @@ export function BreathingControls({
                 }}
                 className={cn(
                   'p-3 rounded-lg border text-left transition-all min-h-[44px] relative group cursor-pointer',
+                  'focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2',
                   ambientSound === sound.id
                     ? 'border-primary bg-primary/10 text-foreground'
                     : 'border-border/50 bg-card/30 text-muted-foreground hover:border-primary/50 hover:bg-card/50',
@@ -473,10 +475,10 @@ export function BreathingControls({
                     e.stopPropagation()
                     handlePreviewAmbient(sound.id)
                   }}
-                  className="absolute top-2 right-2 p-1.5 rounded-md opacity-40 sm:opacity-0 sm:group-hover:opacity-100 hover:opacity-100 hover:bg-primary/20 transition-opacity touch-manipulation"
+                  className="absolute top-1 right-1 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-md opacity-40 sm:opacity-0 sm:group-hover:opacity-100 hover:opacity-100 hover:bg-primary/20 transition-opacity touch-manipulation"
                   aria-label={`Preview ${sound.name} ambient sound`}
                 >
-                  <Play className="h-3 w-3" aria-hidden="true" />
+                  <Play className="h-4 w-4" aria-hidden="true" />
                 </button>
               </div>
             ))}

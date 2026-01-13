@@ -28,6 +28,13 @@ import { cn } from '@/lib/utils'
 // Default to 4-7-8 pattern
 const DEFAULT_PATTERN = BREATH_PRESETS.find(p => p.id === '4-7-8') || BREATH_PRESETS[0]
 
+// Ramp mode constants - multipliers for creating easier start patterns
+const RAMP_START_MULTIPLIERS = {
+  breathDuration: 0.7,  // Start at 70% of target breath duration
+  holdDuration: 0.5,    // Start at 50% of target hold duration
+  minBreathSeconds: 3,  // Minimum breath duration (inhale/exhale)
+}
+
 // Icon mapping for purpose presets
 const PresetIcons: Record<string, React.ComponentType<{ className?: string }>> = {
   Moon,
@@ -209,14 +216,15 @@ export default function BreathePage() {
     if (!rampEnabled) return null
 
     // Create a simple ramp: start with easier pattern, end with target
+    const { breathDuration, holdDuration, minBreathSeconds } = RAMP_START_MULTIPLIERS
     const startPattern: BreathPattern = {
       ...pattern,
       id: `${pattern.id}-start`,
       name: `${pattern.name} (Start)`,
-      inhale: Math.max(3, pattern.inhale * 0.7),
-      hold1: pattern.hold1 * 0.5,
-      exhale: Math.max(3, pattern.exhale * 0.7),
-      hold2: pattern.hold2 * 0.5,
+      inhale: Math.max(minBreathSeconds, pattern.inhale * breathDuration),
+      hold1: pattern.hold1 * holdDuration,
+      exhale: Math.max(minBreathSeconds, pattern.exhale * breathDuration),
+      hold2: pattern.hold2 * holdDuration,
     }
 
     return {
@@ -489,18 +497,22 @@ export default function BreathePage() {
 
                 {/* Streaks display */}
                 {streaks.totalSessions > 0 && (
-                  <div className="mt-4 inline-flex items-center gap-4 px-4 py-2 rounded-full bg-card/50 border border-border/50">
+                  <div
+                    className="mt-4 inline-flex items-center gap-4 px-4 py-2 rounded-full bg-card/50 border border-border/50"
+                    role="status"
+                    aria-label={`Practice streaks: ${streaks.currentStreak} day current streak, ${streaks.totalSessions} total sessions`}
+                  >
                     <div className="flex items-center gap-1.5">
                       <Flame className={cn(
                         "h-4 w-4",
                         streaks.currentStreak > 0 ? "text-orange-500" : "text-muted-foreground"
                       )} aria-hidden="true" />
-                      <span className="text-sm font-medium">{streaks.currentStreak} day streak</span>
+                      <span className="text-sm font-medium" aria-hidden="true">{streaks.currentStreak} day streak</span>
                     </div>
                     <div className="w-px h-4 bg-border" aria-hidden="true" />
                     <div className="flex items-center gap-1.5">
                       <TrendingUp className="h-4 w-4 text-primary" aria-hidden="true" />
-                      <span className="text-sm text-muted-foreground">{streaks.totalSessions} sessions</span>
+                      <span className="text-sm text-muted-foreground" aria-hidden="true">{streaks.totalSessions} sessions</span>
                     </div>
                   </div>
                 )}
@@ -510,27 +522,34 @@ export default function BreathePage() {
             {/* Purpose Presets - quick start buttons */}
             {!timer.isRunning && showPresets && (
               <div className="mb-8">
-                <h2 className="text-sm font-medium text-muted-foreground mb-3 text-center">Quick Start</h2>
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                <h2 id="quick-start-heading" className="text-sm font-medium text-muted-foreground mb-3 text-center">Quick Start</h2>
+                <div
+                  className="grid grid-cols-2 sm:grid-cols-5 gap-2"
+                  role="group"
+                  aria-labelledby="quick-start-heading"
+                >
                   {PURPOSE_PRESETS.map((preset) => {
                     const IconComponent = PresetIcons[preset.icon] || Wind
+                    const isSelected = selectedPreset?.id === preset.id
                     return (
                       <button
                         key={preset.id}
                         onClick={() => applyPreset(preset)}
+                        aria-label={`${preset.name}: ${preset.description}. ${preset.duration} minute session.`}
+                        aria-pressed={isSelected}
                         className={cn(
-                          "flex flex-col items-center gap-2 p-4 rounded-xl border transition-all min-h-[100px]",
-                          "hover:border-primary/50 hover:bg-primary/5",
-                          selectedPreset?.id === preset.id
+                          "flex flex-col items-center gap-2 p-4 rounded-xl border transition-all min-h-[100px] min-w-[44px]",
+                          "hover:border-primary/50 hover:bg-primary/5 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2",
+                          isSelected
                             ? "border-primary bg-primary/10"
                             : "border-border/50 bg-card/30"
                         )}
                       >
                         <IconComponent className={cn(
                           "h-6 w-6",
-                          selectedPreset?.id === preset.id ? "text-primary" : "text-muted-foreground"
-                        )} />
-                        <div className="text-center">
+                          isSelected ? "text-primary" : "text-muted-foreground"
+                        )} aria-hidden="true" />
+                        <div className="text-center" aria-hidden="true">
                           <span className="text-sm font-medium block">{preset.name}</span>
                           <span className="text-xs text-muted-foreground">{preset.duration} min</span>
                         </div>
@@ -543,7 +562,7 @@ export default function BreathePage() {
                     setShowPresets(false)
                     setSelectedPreset(null)
                   }}
-                  className="mt-3 text-xs text-muted-foreground hover:text-foreground mx-auto block"
+                  className="mt-3 text-xs text-muted-foreground hover:text-foreground mx-auto block min-h-[44px] py-2 px-4 rounded-lg hover:bg-muted/50 transition-colors"
                 >
                   or customize your own
                 </button>
@@ -553,14 +572,19 @@ export default function BreathePage() {
             {/* Ramp mode indicator - when running with ramp */}
             {timer.isRunning && effectiveRampConfig?.enabled && timer.rampProgress < 1 && (
               <div className="text-center mb-4">
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20">
-                  <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
+                <div
+                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20"
+                  role="status"
+                  aria-live="polite"
+                  aria-label={`Ramping to target pattern: ${Math.round(timer.rampProgress * 100)}% complete. Current: ${Math.round(timer.currentPattern.inhale * 10) / 10} seconds inhale, ${Math.round(timer.currentPattern.exhale * 10) / 10} seconds exhale.`}
+                >
+                  <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden" aria-hidden="true">
                     <div
                       className="h-full bg-primary transition-all duration-500"
                       style={{ width: `${timer.rampProgress * 100}%` }}
                     />
                   </div>
-                  <span className="text-xs text-primary">
+                  <span className="text-xs text-primary" aria-hidden="true">
                     Ramping: {Math.round(timer.currentPattern.inhale * 10) / 10}s in
                     {timer.currentPattern.hold1 > 0 && `, ${Math.round(timer.currentPattern.hold1 * 10) / 10}s hold`}
                     , {Math.round(timer.currentPattern.exhale * 10) / 10}s out

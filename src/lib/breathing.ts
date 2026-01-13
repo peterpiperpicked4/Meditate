@@ -207,6 +207,13 @@ export interface BreathingStreakData {
 
 const BREATHING_STREAK_KEY = 'ztd_breathing_streaks'
 
+// Helper to safely log errors in development only
+function logStreakError(context: string, error: unknown): void {
+  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+    console.warn(`[BreathingStreaks] ${context}:`, error)
+  }
+}
+
 export function getBreathingStreaks(): BreathingStreakData {
   if (typeof window === 'undefined') {
     return {
@@ -227,7 +234,7 @@ export function getBreathingStreaks(): BreathingStreakData {
       return recalculateStreak(data)
     }
   } catch (e) {
-    console.warn('Failed to load breathing streaks:', e)
+    logStreakError('Failed to load breathing streaks', e)
   }
 
   return {
@@ -312,12 +319,17 @@ function saveBreathingStreaks(data: BreathingStreakData): void {
   try {
     localStorage.setItem(BREATHING_STREAK_KEY, JSON.stringify(data))
   } catch (e) {
-    console.warn('Failed to save breathing streaks:', e)
+    logStreakError('Failed to save breathing streaks', e)
   }
 }
 
+// Get local date string (YYYY-MM-DD) to avoid timezone issues
+// Using toISOString() would convert to UTC which can cause streak breaks at midnight
 function getDateString(date: Date): string {
-  return date.toISOString().split('T')[0]
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
 }
 
 // Get practice history for heatmap display
