@@ -876,7 +876,7 @@ export const DEFAULT_BREATHING_SETTINGS: BreathingSettings = {
   defaultDuration: 5,
   muteHoldPhases: false,
   ambientSound: null,
-  ambientVolume: 0.3,
+  ambientVolume: 0.08,  // Default much quieter (was 0.3)
   rampEnabled: false,
   rampDuration: 3,
 }
@@ -1031,8 +1031,11 @@ function generateAmbientBuffer(ctx: AudioContext, type: AmbientSound, duration: 
   return buffer
 }
 
+// Ambient volume multiplier - reduces max volume to prevent overpowering
+const AMBIENT_VOLUME_MULTIPLIER = 0.5
+
 // Start ambient sound loop
-export function startAmbientSound(type: AmbientSound, volume: number = 0.3): void {
+export function startAmbientSound(type: AmbientSound, volume: number = 0.08): void {
   try {
     const ctx = getAudioContext()
     resumeAudio(ctx)
@@ -1046,9 +1049,12 @@ export function startAmbientSound(type: AmbientSound, volume: number = 0.3): voi
     source.buffer = buffer
     source.loop = true
 
+    // Apply volume multiplier to reduce overall loudness
+    const adjustedVolume = volume * AMBIENT_VOLUME_MULTIPLIER
+
     const gain = ctx.createGain()
     gain.gain.setValueAtTime(0, ctx.currentTime)
-    gain.gain.linearRampToValueAtTime(volume, ctx.currentTime + 1) // Fade in
+    gain.gain.linearRampToValueAtTime(adjustedVolume, ctx.currentTime + 1) // Fade in
 
     const filter = ctx.createBiquadFilter()
     filter.type = 'lowpass'
@@ -1091,7 +1097,8 @@ export function setAmbientVolume(volume: number): void {
   if (ambientNodes?.gain) {
     try {
       const ctx = getAudioContext()
-      ambientNodes.gain.gain.linearRampToValueAtTime(volume, ctx.currentTime + 0.1)
+      const adjustedVolume = volume * AMBIENT_VOLUME_MULTIPLIER
+      ambientNodes.gain.gain.linearRampToValueAtTime(adjustedVolume, ctx.currentTime + 0.1)
     } catch (e) {
       // Ignore
     }
@@ -1106,7 +1113,7 @@ export function previewSoundProfile(profile: SoundProfile, volume: number = 0.3)
 // Preview an ambient sound (3-second sample)
 let previewTimeout: ReturnType<typeof setTimeout> | null = null
 
-export function previewAmbientSound(type: AmbientSound, volume: number = 0.3): void {
+export function previewAmbientSound(type: AmbientSound, volume: number = 0.08): void {
   // Clear any existing preview
   if (previewTimeout) {
     clearTimeout(previewTimeout)
