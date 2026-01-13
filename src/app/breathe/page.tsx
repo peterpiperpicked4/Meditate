@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import Link from 'next/link'
-import { Play, Pause, Square, Timer, ArrowLeft, Settings } from 'lucide-react'
+import { Play, Pause, Square, Timer, ArrowLeft, Settings, Check, Maximize, Minimize } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { BreathingVisual } from '@/components/breathe/BreathingVisual'
 import { BreathingControls } from '@/components/breathe/BreathingControls'
@@ -13,22 +13,41 @@ import {
   DEFAULT_BREATHING_SETTINGS,
   BREATHING_STORAGE_KEYS,
   SoundProfile,
+  AmbientSound,
+  startAmbientSound,
+  stopAmbientSound,
+  setAmbientVolume as updateAmbientVolume,
 } from '@/lib/breathing'
 import { cn } from '@/lib/utils'
 
 // Default to 4-7-8 pattern
 const DEFAULT_PATTERN = BREATH_PRESETS.find(p => p.id === '4-7-8') || BREATH_PRESETS[0]
 
+// Helper to safely log errors in development
+function logError(context: string, error: unknown) {
+  if (process.env.NODE_ENV === 'development') {
+    console.warn(`[Breathe] ${context}:`, error)
+  }
+}
+
 export default function BreathePage() {
   // State
   const [pattern, setPattern] = React.useState<BreathPattern>(DEFAULT_PATTERN)
-  const [durationMinutes, setDurationMinutes] = React.useState(5)
+  const [durationMinutes, setDurationMinutes] = React.useState(DEFAULT_BREATHING_SETTINGS.defaultDuration)
   const [soundEnabled, setSoundEnabled] = React.useState(DEFAULT_BREATHING_SETTINGS.soundEnabled)
   const [soundProfile, setSoundProfile] = React.useState<SoundProfile>('singing-bowl')
+  const [soundVolume, setSoundVolume] = React.useState(DEFAULT_BREATHING_SETTINGS.soundVolume)
   const [hapticEnabled, setHapticEnabled] = React.useState(DEFAULT_BREATHING_SETTINGS.hapticEnabled)
+  const [muteHoldPhases, setMuteHoldPhases] = React.useState(DEFAULT_BREATHING_SETTINGS.muteHoldPhases)
+  const [ambientSound, setAmbientSound] = React.useState<AmbientSound | null>(DEFAULT_BREATHING_SETTINGS.ambientSound)
+  const [ambientVolume, setAmbientVolume] = React.useState(DEFAULT_BREATHING_SETTINGS.ambientVolume)
   const [showSettings, setShowSettings] = React.useState(true)
   const [sessionComplete, setSessionComplete] = React.useState(false)
   const [completedBreaths, setCompletedBreaths] = React.useState(0)
+  const [isFullscreen, setIsFullscreen] = React.useState(false)
+
+  // Ref for settings panel focus trap
+  const settingsPanelRef = React.useRef<HTMLDivElement>(null)
 
   // Load saved settings from localStorage
   React.useEffect(() => {
@@ -38,8 +57,12 @@ export default function BreathePage() {
         const settings = JSON.parse(savedSettings)
         setSoundEnabled(settings.soundEnabled ?? DEFAULT_BREATHING_SETTINGS.soundEnabled)
         setSoundProfile(settings.soundProfile ?? 'singing-bowl')
+        setSoundVolume(settings.soundVolume ?? DEFAULT_BREATHING_SETTINGS.soundVolume)
         setHapticEnabled(settings.hapticEnabled ?? DEFAULT_BREATHING_SETTINGS.hapticEnabled)
         setDurationMinutes(settings.defaultDuration ?? DEFAULT_BREATHING_SETTINGS.defaultDuration)
+        setMuteHoldPhases(settings.muteHoldPhases ?? DEFAULT_BREATHING_SETTINGS.muteHoldPhases)
+        setAmbientSound(settings.ambientSound ?? DEFAULT_BREATHING_SETTINGS.ambientSound)
+        setAmbientVolume(settings.ambientVolume ?? DEFAULT_BREATHING_SETTINGS.ambientVolume)
       }
 
       const savedPattern = localStorage.getItem(BREATHING_STORAGE_KEYS.lastPattern)
@@ -54,7 +77,7 @@ export default function BreathePage() {
         }
       }
     } catch (e) {
-      // Use defaults
+      logError('Failed to load settings', e)
     }
   }, [])
 
@@ -66,21 +89,25 @@ export default function BreathePage() {
         JSON.stringify({
           soundEnabled,
           soundProfile,
+          soundVolume,
           hapticEnabled,
           defaultDuration: durationMinutes,
+          muteHoldPhases,
+          ambientSound,
+          ambientVolume,
         })
       )
     } catch (e) {
-      // Storage not available
+      logError('Failed to save settings', e)
     }
-  }, [soundEnabled, soundProfile, hapticEnabled, durationMinutes])
+  }, [soundEnabled, soundProfile, soundVolume, hapticEnabled, durationMinutes, muteHoldPhases, ambientSound, ambientVolume])
 
   // Save pattern when it changes
   React.useEffect(() => {
     try {
       localStorage.setItem(BREATHING_STORAGE_KEYS.lastPattern, JSON.stringify(pattern))
     } catch (e) {
-      // Storage not available
+      logError('Failed to save pattern', e)
     }
   }, [pattern])
 
@@ -88,6 +115,9 @@ export default function BreathePage() {
   const handleComplete = React.useCallback((breathCount: number) => {
     setCompletedBreaths(breathCount)
     setSessionComplete(true)
+
+    // Stop ambient sound when session ends
+    stopAmbientSound()
 
     // Log session to existing practice log
     try {
@@ -102,7 +132,7 @@ export default function BreathePage() {
       })
       localStorage.setItem('ztd_sessions', JSON.stringify(sessions))
     } catch (e) {
-      // Storage error
+      logError('Failed to save session', e)
     }
   }, [durationMinutes, pattern])
 
@@ -111,27 +141,159 @@ export default function BreathePage() {
     pattern,
     duration: durationMinutes * 60,
     soundEnabled,
+    soundVolume,
     soundProfile,
     hapticEnabled,
+    muteHoldPhases,
     onComplete: handleComplete,
   })
 
+  // Handle ambient sound changes
+  React.useEffect(() => {
+    if (timer.isRunning && !timer.isPaused && ambientSound && soundEnabled) {
+      startAmbientSound(ambientSound, ambientVolume)
+    } else {
+      stopAmbientSound()
+    }
+  }, [timer.isRunning, timer.isPaused, ambientSound, soundEnabled, ambientVolume])
+
+  // Update ambient volume when it changes during session
+  React.useEffect(() => {
+    if (timer.isRunning && ambientSound) {
+      updateAmbientVolume(ambientVolume)
+    }
+  }, [ambientVolume, timer.isRunning, ambientSound])
+
   // Reset session complete state when starting new session
-  const handleStart = () => {
+  const handleStart = React.useCallback(() => {
     setSessionComplete(false)
     setShowSettings(false)
     timer.start()
-  }
+  }, [timer])
 
-  const handleStop = () => {
+  const handleStop = React.useCallback(() => {
     timer.stop()
+    stopAmbientSound()
     setShowSettings(true)
-  }
+  }, [timer])
+
+  // Fullscreen handling
+  const toggleFullscreen = React.useCallback(async () => {
+    try {
+      if (!document.fullscreenElement) {
+        await document.documentElement.requestFullscreen()
+        setIsFullscreen(true)
+      } else {
+        await document.exitFullscreen()
+        setIsFullscreen(false)
+      }
+    } catch (e) {
+      logError('Fullscreen toggle failed', e)
+    }
+  }, [])
+
+  // Keyboard shortcuts
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger if user is typing in an input
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return
+      }
+
+      switch (e.key) {
+        case ' ':
+          e.preventDefault()
+          if (timer.isRunning) {
+            if (timer.isPaused) {
+              timer.resume()
+              // Resume ambient sound
+              if (ambientSound && soundEnabled) {
+                startAmbientSound(ambientSound, ambientVolume)
+              }
+            } else {
+              timer.pause()
+              stopAmbientSound()
+            }
+          } else if (!sessionComplete) {
+            handleStart()
+          }
+          break
+        case 'Escape':
+          if (timer.isRunning) {
+            handleStop()
+          } else if (isFullscreen) {
+            toggleFullscreen()
+          }
+          break
+        case 'f':
+        case 'F':
+          if (!e.ctrlKey && !e.metaKey) {
+            toggleFullscreen()
+          }
+          break
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [timer, sessionComplete, isFullscreen, ambientSound, soundEnabled, ambientVolume, handleStart, handleStop, toggleFullscreen])
+
+  // Listen for fullscreen changes (user might exit with browser button)
+  React.useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement)
+    }
+    document.addEventListener('fullscreenchange', handleFullscreenChange)
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange)
+  }, [])
+
+  // Cleanup on unmount
+  React.useEffect(() => {
+    return () => {
+      stopAmbientSound()
+    }
+  }, [])
+
+  // Focus trap for settings panel during active session
+  React.useEffect(() => {
+    if (!timer.isRunning || !showSettings || !settingsPanelRef.current) return
+
+    const panel = settingsPanelRef.current
+    const focusableElements = panel.querySelectorAll<HTMLElement>(
+      'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    )
+
+    if (focusableElements.length === 0) return
+
+    const firstElement = focusableElements[0]
+    const lastElement = focusableElements[focusableElements.length - 1]
+
+    const handleTabKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab') return
+
+      if (e.shiftKey) {
+        // Shift + Tab
+        if (document.activeElement === firstElement) {
+          e.preventDefault()
+          lastElement.focus()
+        }
+      } else {
+        // Tab
+        if (document.activeElement === lastElement) {
+          e.preventDefault()
+          firstElement.focus()
+        }
+      }
+    }
+
+    panel.addEventListener('keydown', handleTabKey)
+    return () => panel.removeEventListener('keydown', handleTabKey)
+  }, [timer.isRunning, showSettings])
 
   return (
     <div className="min-h-screen relative">
       {/* Ambient background */}
-      <div className="pointer-events-none fixed inset-0 overflow-hidden">
+      <div className="pointer-events-none fixed inset-0 overflow-hidden" aria-hidden="true">
         <div
           className={cn(
             'absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full transition-all duration-1000',
@@ -149,27 +311,46 @@ export default function BreathePage() {
             href="/practice"
             className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground min-h-[44px] py-2 px-2 -ml-2 rounded-lg hover:bg-muted/50 transition-colors"
           >
-            <ArrowLeft className="mr-1 h-4 w-4" />
+            <ArrowLeft className="mr-1 h-4 w-4" aria-hidden="true" />
             Practice
           </Link>
 
-          {timer.isRunning && (
+          <div className="flex items-center gap-2">
+            {/* Fullscreen button */}
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setShowSettings(!showSettings)}
+              onClick={toggleFullscreen}
               className="min-h-[44px]"
+              aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
             >
-              <Settings className="h-4 w-4" />
+              {isFullscreen ? (
+                <Minimize className="h-4 w-4" aria-hidden="true" />
+              ) : (
+                <Maximize className="h-4 w-4" aria-hidden="true" />
+              )}
             </Button>
-          )}
+
+            {timer.isRunning && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowSettings(!showSettings)}
+                className="min-h-[44px]"
+                aria-label={showSettings ? 'Hide settings' : 'Show settings'}
+                aria-expanded={showSettings}
+              >
+                <Settings className="h-4 w-4" aria-hidden="true" />
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Session Complete View */}
         {sessionComplete ? (
           <div className="max-w-md mx-auto text-center py-12">
             <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-primary/20 flex items-center justify-center">
-              <span className="text-3xl">✓</span>
+              <Check className="h-10 w-10 text-primary" aria-hidden="true" />
             </div>
             <h2 className="text-2xl font-display mb-2">Session Complete</h2>
             <p className="text-muted-foreground mb-8">
@@ -194,7 +375,7 @@ export default function BreathePage() {
                 className="w-full"
               >
                 <Link href="/practice">
-                  <Timer className="mr-2 h-4 w-4" />
+                  <Timer className="mr-2 h-4 w-4" aria-hidden="true" />
                   Open Timer
                 </Link>
               </Button>
@@ -236,7 +417,7 @@ export default function BreathePage() {
                     onClick={handleStart}
                     className="px-12 py-6 text-lg"
                   >
-                    <Play className="mr-2 h-5 w-5" />
+                    <Play className="mr-2 h-5 w-5" aria-hidden="true" />
                     Start
                   </Button>
                 ) : (
@@ -244,17 +425,27 @@ export default function BreathePage() {
                     <Button
                       variant="outline"
                       size="lg"
-                      onClick={timer.isPaused ? timer.resume : timer.pause}
+                      onClick={() => {
+                        if (timer.isPaused) {
+                          timer.resume()
+                          if (ambientSound && soundEnabled) {
+                            startAmbientSound(ambientSound, ambientVolume)
+                          }
+                        } else {
+                          timer.pause()
+                          stopAmbientSound()
+                        }
+                      }}
                       className="px-8 py-6"
                     >
                       {timer.isPaused ? (
                         <>
-                          <Play className="mr-2 h-5 w-5" />
+                          <Play className="mr-2 h-5 w-5" aria-hidden="true" />
                           Resume
                         </>
                       ) : (
                         <>
-                          <Pause className="mr-2 h-5 w-5" />
+                          <Pause className="mr-2 h-5 w-5" aria-hidden="true" />
                           Pause
                         </>
                       )}
@@ -265,16 +456,29 @@ export default function BreathePage() {
                       onClick={handleStop}
                       className="px-8 py-6 text-muted-foreground hover:text-destructive"
                     >
-                      <Square className="mr-2 h-5 w-5" />
+                      <Square className="mr-2 h-5 w-5" aria-hidden="true" />
                       End
                     </Button>
                   </>
                 )}
               </div>
 
+              {/* Keyboard shortcuts hint */}
+              {!timer.isRunning && (
+                <p className="text-center text-xs text-muted-foreground">
+                  Press <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px] font-mono">Space</kbd> to start,{' '}
+                  <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px] font-mono">F</kbd> for fullscreen
+                </p>
+              )}
+
               {/* Settings panel */}
               {showSettings && (
-                <div className="mt-8 p-6 rounded-xl border border-border/50 bg-card/30">
+                <div
+                  ref={settingsPanelRef}
+                  className="mt-8 p-6 rounded-xl border border-border/50 bg-card/30"
+                  role="region"
+                  aria-label="Breathing session settings"
+                >
                   <BreathingControls
                     pattern={pattern}
                     onPatternChange={setPattern}
@@ -284,8 +488,16 @@ export default function BreathePage() {
                     onSoundToggle={() => setSoundEnabled(!soundEnabled)}
                     soundProfile={soundProfile}
                     onSoundProfileChange={setSoundProfile}
+                    soundVolume={soundVolume}
+                    onSoundVolumeChange={setSoundVolume}
                     hapticEnabled={hapticEnabled}
                     onHapticToggle={() => setHapticEnabled(!hapticEnabled)}
+                    muteHoldPhases={muteHoldPhases}
+                    onMuteHoldPhasesToggle={() => setMuteHoldPhases(!muteHoldPhases)}
+                    ambientSound={ambientSound}
+                    onAmbientSoundChange={setAmbientSound}
+                    ambientVolume={ambientVolume}
+                    onAmbientVolumeChange={setAmbientVolume}
                     disabled={timer.isRunning && !timer.isPaused}
                   />
                 </div>

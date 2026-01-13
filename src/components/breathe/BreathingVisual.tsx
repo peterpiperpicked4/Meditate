@@ -48,7 +48,11 @@ export function BreathingVisual({
 
   const scale = getCircleScale()
   const isHolding = phase === 'hold1' || phase === 'hold2'
-  const sessionProgress = 1 - (totalTimeRemaining / totalDuration)
+  const sessionProgress = totalDuration > 0 ? 1 - (totalTimeRemaining / totalDuration) : 0
+
+  // Calculate circumference for progress ring
+  const radius = 150
+  const circumference = 2 * Math.PI * radius
 
   return (
     <div className="relative flex flex-col items-center justify-center">
@@ -58,12 +62,17 @@ export function BreathingVisual({
         <svg
           className="absolute inset-0 -rotate-90"
           viewBox="0 0 320 320"
+          role="progressbar"
+          aria-valuenow={Math.round(sessionProgress * 100)}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label={`Session progress: ${Math.round(sessionProgress * 100)} percent complete`}
         >
           {/* Background track */}
           <circle
             cx="160"
             cy="160"
-            r="150"
+            r={radius}
             fill="none"
             strokeWidth="2"
             className="stroke-muted/20"
@@ -73,13 +82,13 @@ export function BreathingVisual({
             <circle
               cx="160"
               cy="160"
-              r="150"
+              r={radius}
               fill="none"
               strokeWidth="2"
               strokeLinecap="round"
               className="stroke-primary/40"
-              strokeDasharray={2 * Math.PI * 150}
-              strokeDashoffset={2 * Math.PI * 150 * (1 - sessionProgress)}
+              strokeDasharray={circumference}
+              strokeDashoffset={circumference * (1 - sessionProgress)}
               style={{ transition: 'stroke-dashoffset 0.5s ease-out' }}
             />
           )}
@@ -133,7 +142,11 @@ export function BreathingVisual({
           <div className="absolute inset-0 flex flex-col items-center justify-center">
             {phase === 'countdown' ? (
               <>
-                <span className="text-5xl sm:text-6xl font-mono font-light text-primary">
+                <span
+                  className="text-5xl sm:text-6xl font-mono font-light text-primary"
+                  aria-live="polite"
+                  aria-atomic="true"
+                >
                   {Math.ceil(phaseTimeRemaining)}
                 </span>
                 <span className="mt-2 text-sm text-muted-foreground uppercase tracking-widest">
@@ -153,12 +166,15 @@ export function BreathingVisual({
                   {Math.ceil(phaseTimeRemaining)}
                 </span>
 
-                {/* Phase label */}
+                {/* Phase label - with ARIA live region for screen readers */}
                 <span
+                  role="status"
+                  aria-live="polite"
+                  aria-atomic="true"
                   className={cn(
                     'mt-2 text-lg sm:text-xl font-display tracking-wide transition-colors duration-300',
                     phase === 'inhale' && 'text-primary',
-                    phase === 'exhale' && 'text-amber-400',
+                    phase === 'exhale' && 'text-accent',
                     isHolding && 'text-muted-foreground'
                   )}
                 >
@@ -167,34 +183,45 @@ export function BreathingVisual({
               </>
             )}
           </div>
+
+          {/* Paused indicator - scoped to circle */}
+          {isPaused && (
+            <div
+              className="absolute inset-0 flex items-center justify-center bg-background/60 rounded-full backdrop-blur-sm"
+              role="status"
+              aria-live="polite"
+            >
+              <span className="text-xl font-display text-primary">Paused</span>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Session info below circle */}
       {isRunning && phase !== 'countdown' && (
         <div className="mt-8 flex items-center gap-8 text-sm text-muted-foreground">
-          <div className="text-center">
-            <span className="block text-2xl font-mono text-foreground">
+          <div className="text-center" role="group" aria-labelledby="time-remaining-label">
+            <span id="time-remaining-value" className="block text-2xl font-mono text-foreground">
               {Math.floor(totalTimeRemaining / 60)}:{(Math.floor(totalTimeRemaining) % 60).toString().padStart(2, '0')}
             </span>
-            <span className="text-xs uppercase tracking-wider">remaining</span>
+            <span id="time-remaining-label" className="text-xs uppercase tracking-wider">remaining</span>
           </div>
-          <div className="w-px h-8 bg-border/50" />
-          <div className="text-center">
-            <span className="block text-2xl font-mono text-foreground">
+          <div className="w-px h-8 bg-border/50" aria-hidden="true" />
+          <div className="text-center" role="group" aria-labelledby="breath-count-label">
+            <span id="breath-count-value" className="block text-2xl font-mono text-foreground">
               {breathCount}
             </span>
-            <span className="text-xs uppercase tracking-wider">breaths</span>
+            <span id="breath-count-label" className="text-xs uppercase tracking-wider">breaths</span>
           </div>
         </div>
       )}
 
-      {/* Paused indicator */}
-      {isPaused && (
-        <div className="absolute inset-0 flex items-center justify-center bg-background/50 rounded-full">
-          <span className="text-xl font-display text-primary">Paused</span>
-        </div>
-      )}
+      {/* Hidden live region for session completion announcement */}
+      <div className="sr-only" aria-live="assertive" aria-atomic="true">
+        {!isRunning && breathCount > 0 && (
+          <span>Session complete. {breathCount} breaths completed.</span>
+        )}
+      </div>
     </div>
   )
 }

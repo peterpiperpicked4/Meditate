@@ -147,10 +147,24 @@ export const SOUND_PROFILES: SoundProfileInfo[] = [
 
 // Audio context singleton
 let audioContext: AudioContext | null = null
+let audioContextFailed = false
 
 export function getAudioContext(): AudioContext {
+  if (audioContextFailed) {
+    throw new Error('AudioContext not supported')
+  }
   if (!audioContext) {
-    audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
+    try {
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext
+      if (!AudioContextClass) {
+        audioContextFailed = true
+        throw new Error('AudioContext not supported')
+      }
+      audioContext = new AudioContextClass()
+    } catch (e) {
+      audioContextFailed = true
+      throw e
+    }
   }
   return audioContext
 }
@@ -410,9 +424,15 @@ function playClassic(frequency: number, volume: number, duration: number = 0.2):
 export function playPhaseSound(
   phase: BreathPhase,
   volume: number = 0.3,
-  profile: SoundProfile = 'singing-bowl'
+  profile: SoundProfile = 'singing-bowl',
+  muteHoldPhases: boolean = false
 ): void {
   try {
+    // Skip hold sounds if mute during holds is enabled
+    if (muteHoldPhases && (phase === 'hold1' || phase === 'hold2')) {
+      return
+    }
+
     const freqs: Record<BreathPhase, number> = {
       inhale: 396,    // G4 - grounding
       exhale: 264,    // C4 - calming
@@ -510,6 +530,9 @@ export interface BreathingSettings {
   soundVolume: number
   hapticEnabled: boolean
   defaultDuration: number  // in minutes
+  muteHoldPhases: boolean  // mute sounds during hold phases
+  ambientSound: AmbientSound | null  // background ambient sound
+  ambientVolume: number  // 0-1 volume for ambient sounds
 }
 
 export const DEFAULT_BREATHING_SETTINGS: BreathingSettings = {
@@ -517,4 +540,253 @@ export const DEFAULT_BREATHING_SETTINGS: BreathingSettings = {
   soundVolume: 0.3,
   hapticEnabled: true,
   defaultDuration: 5,
+  muteHoldPhases: false,
+  ambientSound: null,
+  ambientVolume: 0.3,
+}
+
+// ===== AMBIENT SOUNDS =====
+
+export type AmbientSound = 'rain' | 'ocean' | 'forest' | 'wind' | 'fire'
+
+export interface AmbientSoundInfo {
+  id: AmbientSound
+  name: string
+  description: string
+}
+
+export const AMBIENT_SOUNDS: AmbientSoundInfo[] = [
+  {
+    id: 'rain',
+    name: 'Gentle Rain',
+    description: 'Soft rainfall on leaves',
+  },
+  {
+    id: 'ocean',
+    name: 'Ocean Waves',
+    description: 'Rhythmic waves on shore',
+  },
+  {
+    id: 'forest',
+    name: 'Forest',
+    description: 'Birds and rustling leaves',
+  },
+  {
+    id: 'wind',
+    name: 'Soft Wind',
+    description: 'Gentle breeze through trees',
+  },
+  {
+    id: 'fire',
+    name: 'Crackling Fire',
+    description: 'Warm fireplace crackles',
+  },
+]
+
+// Ambient sound state
+let ambientNodes: {
+  source: AudioBufferSourceNode | OscillatorNode | null
+  gain: GainNode | null
+  filter: BiquadFilterNode | null
+  noiseSource?: AudioBufferSourceNode | null
+} | null = null
+
+// Cache for ambient sound buffers (prevents regeneration on each start)
+const ambientBufferCache = new Map<string, AudioBuffer>()
+
+// Get cached buffer or generate new one
+function getAmbientBuffer(ctx: AudioContext, type: AmbientSound, duration: number = 4): AudioBuffer {
+  const cacheKey = `${type}-${duration}-${ctx.sampleRate}`
+
+  // Return cached buffer if available and sample rate matches
+  const cached = ambientBufferCache.get(cacheKey)
+  if (cached) {
+    return cached
+  }
+
+  // Generate new buffer and cache it
+  const buffer = generateAmbientBuffer(ctx, type, duration)
+  ambientBufferCache.set(cacheKey, buffer)
+
+  return buffer
+}
+
+// Generate ambient sound buffer (internal - use getAmbientBuffer for caching)
+function generateAmbientBuffer(ctx: AudioContext, type: AmbientSound, duration: number = 4): AudioBuffer {
+  const sampleRate = ctx.sampleRate
+  const bufferSize = sampleRate * duration
+  const buffer = ctx.createBuffer(2, bufferSize, sampleRate)
+  const leftChannel = buffer.getChannelData(0)
+  const rightChannel = buffer.getChannelData(1)
+
+  // Pink noise generator state
+  let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0
+
+  for (let i = 0; i < bufferSize; i++) {
+    const white = Math.random() * 2 - 1
+
+    // Pink noise filter (Paul Kellet's refined method)
+    b0 = 0.99886 * b0 + white * 0.0555179
+    b1 = 0.99332 * b1 + white * 0.0750759
+    b2 = 0.96900 * b2 + white * 0.1538520
+    b3 = 0.86650 * b3 + white * 0.3104856
+    b4 = 0.55000 * b4 + white * 0.5329522
+    b5 = -0.7616 * b5 - white * 0.0168980
+    const pink = b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362
+    b6 = white * 0.115926
+
+    let sample = 0
+    const t = i / sampleRate
+
+    switch (type) {
+      case 'rain':
+        // Soft pink noise with occasional droplet sounds
+        sample = pink * 0.15
+        // Random droplets
+        if (Math.random() < 0.0003) {
+          const dropletFreq = 800 + Math.random() * 400
+          const dropletDecay = Math.exp(-((i % (sampleRate * 0.05)) / sampleRate) * 50)
+          sample += Math.sin(2 * Math.PI * dropletFreq * t) * dropletDecay * 0.1
+        }
+        break
+
+      case 'ocean':
+        // Layered waves with slow modulation
+        const waveFreq = 0.08 + Math.sin(t * 0.02) * 0.02
+        const waveMod = (Math.sin(2 * Math.PI * waveFreq * t) + 1) * 0.5
+        sample = pink * 0.2 * (0.3 + waveMod * 0.7)
+        break
+
+      case 'forest':
+        // Light wind with bird-like chirps
+        sample = pink * 0.08
+        // Occasional chirps
+        if (Math.random() < 0.0001) {
+          const chirpFreq = 2000 + Math.random() * 2000
+          const chirpEnv = Math.exp(-((i % (sampleRate * 0.1)) / sampleRate) * 30)
+          sample += Math.sin(2 * Math.PI * chirpFreq * t * (1 + Math.sin(t * 50) * 0.1)) * chirpEnv * 0.05
+        }
+        break
+
+      case 'wind':
+        // Filtered noise with slow sweeping
+        const windMod = (Math.sin(t * 0.3) + Math.sin(t * 0.17)) * 0.25 + 0.5
+        sample = pink * 0.12 * windMod
+        break
+
+      case 'fire':
+        // Crackling with low rumble
+        sample = pink * 0.1
+        // Random crackles
+        if (Math.random() < 0.002) {
+          const crackleEnv = Math.exp(-((i % (sampleRate * 0.03)) / sampleRate) * 100)
+          sample += (Math.random() * 2 - 1) * crackleEnv * 0.15
+        }
+        // Low rumble
+        sample += Math.sin(2 * Math.PI * 60 * t) * 0.02
+        break
+    }
+
+    // Slight stereo variation
+    leftChannel[i] = sample * (0.9 + Math.random() * 0.1)
+    rightChannel[i] = sample * (0.9 + Math.random() * 0.1)
+  }
+
+  return buffer
+}
+
+// Start ambient sound loop
+export function startAmbientSound(type: AmbientSound, volume: number = 0.3): void {
+  try {
+    const ctx = getAudioContext()
+    resumeAudio(ctx)
+
+    // Stop any existing ambient sound
+    stopAmbientSound()
+
+    // Use cached buffer for better performance
+    const buffer = getAmbientBuffer(ctx, type, 4)
+    const source = ctx.createBufferSource()
+    source.buffer = buffer
+    source.loop = true
+
+    const gain = ctx.createGain()
+    gain.gain.setValueAtTime(0, ctx.currentTime)
+    gain.gain.linearRampToValueAtTime(volume, ctx.currentTime + 1) // Fade in
+
+    const filter = ctx.createBiquadFilter()
+    filter.type = 'lowpass'
+    filter.frequency.value = type === 'rain' ? 3000 : type === 'ocean' ? 1500 : 2500
+
+    source.connect(filter)
+    filter.connect(gain)
+    gain.connect(ctx.destination)
+
+    source.start()
+
+    ambientNodes = { source, gain, filter }
+  } catch (e) {
+    console.warn('Failed to start ambient sound:', e)
+  }
+}
+
+// Stop ambient sound with fade out
+export function stopAmbientSound(): void {
+  if (ambientNodes?.gain && ambientNodes?.source) {
+    try {
+      const ctx = getAudioContext()
+      ambientNodes.gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.5)
+      setTimeout(() => {
+        try {
+          ambientNodes?.source?.stop()
+        } catch (e) {
+          // Already stopped
+        }
+        ambientNodes = null
+      }, 600)
+    } catch (e) {
+      ambientNodes = null
+    }
+  }
+}
+
+// Update ambient volume
+export function setAmbientVolume(volume: number): void {
+  if (ambientNodes?.gain) {
+    try {
+      const ctx = getAudioContext()
+      ambientNodes.gain.gain.linearRampToValueAtTime(volume, ctx.currentTime + 0.1)
+    } catch (e) {
+      // Ignore
+    }
+  }
+}
+
+// Preview a sound profile (short sample)
+export function previewSoundProfile(profile: SoundProfile, volume: number = 0.3): void {
+  playPhaseSound('inhale', volume, profile)
+}
+
+// Preview an ambient sound (3-second sample)
+let previewTimeout: ReturnType<typeof setTimeout> | null = null
+
+export function previewAmbientSound(type: AmbientSound, volume: number = 0.3): void {
+  // Clear any existing preview
+  if (previewTimeout) {
+    clearTimeout(previewTimeout)
+    stopAmbientSound()
+  }
+
+  startAmbientSound(type, volume)
+
+  previewTimeout = setTimeout(() => {
+    stopAmbientSound()
+    previewTimeout = null
+  }, 3000)
+}
+
+// Check if audio is supported
+export function isAudioSupported(): boolean {
+  return typeof window !== 'undefined' &&
+    (typeof AudioContext !== 'undefined' || typeof (window as any).webkitAudioContext !== 'undefined')
 }
