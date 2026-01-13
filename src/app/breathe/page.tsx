@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import Link from 'next/link'
-import { Play, Pause, Square, Timer, ArrowLeft, Settings, Check, Maximize, Minimize } from 'lucide-react'
+import { Play, Pause, Square, Timer, ArrowLeft, Settings, Check, Maximize, Minimize, Moon, Heart, Target, Zap, Wind, Flame, TrendingUp } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { BreathingVisual } from '@/components/breathe/BreathingVisual'
 import { BreathingControls } from '@/components/breathe/BreathingControls'
@@ -14,6 +14,11 @@ import {
   BREATHING_STORAGE_KEYS,
   SoundProfile,
   AmbientSound,
+  RampConfig,
+  PurposePreset,
+  PURPOSE_PRESETS,
+  getBreathingStreaks,
+  recordBreathingSession,
   startAmbientSound,
   stopAmbientSound,
   setAmbientVolume as updateAmbientVolume,
@@ -22,6 +27,15 @@ import { cn } from '@/lib/utils'
 
 // Default to 4-7-8 pattern
 const DEFAULT_PATTERN = BREATH_PRESETS.find(p => p.id === '4-7-8') || BREATH_PRESETS[0]
+
+// Icon mapping for purpose presets
+const PresetIcons: Record<string, React.ComponentType<{ className?: string }>> = {
+  Moon,
+  Heart,
+  Target,
+  Zap,
+  Wind,
+}
 
 // Helper to safely log errors in development
 function logError(context: string, error: unknown) {
@@ -46,6 +60,18 @@ export default function BreathePage() {
   const [completedBreaths, setCompletedBreaths] = React.useState(0)
   const [isFullscreen, setIsFullscreen] = React.useState(false)
 
+  // Ramp mode state
+  const [rampEnabled, setRampEnabled] = React.useState(DEFAULT_BREATHING_SETTINGS.rampEnabled)
+  const [rampDuration, setRampDuration] = React.useState(DEFAULT_BREATHING_SETTINGS.rampDuration)
+  const [rampConfig, setRampConfig] = React.useState<RampConfig | null>(null)
+
+  // Purpose preset state
+  const [selectedPreset, setSelectedPreset] = React.useState<PurposePreset | null>(null)
+  const [showPresets, setShowPresets] = React.useState(true)
+
+  // Streaks state
+  const [streaks, setStreaks] = React.useState(getBreathingStreaks())
+
   // Ref for settings panel focus trap
   const settingsPanelRef = React.useRef<HTMLDivElement>(null)
 
@@ -63,6 +89,8 @@ export default function BreathePage() {
         setMuteHoldPhases(settings.muteHoldPhases ?? DEFAULT_BREATHING_SETTINGS.muteHoldPhases)
         setAmbientSound(settings.ambientSound ?? DEFAULT_BREATHING_SETTINGS.ambientSound)
         setAmbientVolume(settings.ambientVolume ?? DEFAULT_BREATHING_SETTINGS.ambientVolume)
+        setRampEnabled(settings.rampEnabled ?? DEFAULT_BREATHING_SETTINGS.rampEnabled)
+        setRampDuration(settings.rampDuration ?? DEFAULT_BREATHING_SETTINGS.rampDuration)
       }
 
       const savedPattern = localStorage.getItem(BREATHING_STORAGE_KEYS.lastPattern)
@@ -76,6 +104,9 @@ export default function BreathePage() {
           setPattern(parsed)
         }
       }
+
+      // Refresh streaks on load
+      setStreaks(getBreathingStreaks())
     } catch (e) {
       logError('Failed to load settings', e)
     }
@@ -95,12 +126,14 @@ export default function BreathePage() {
           muteHoldPhases,
           ambientSound,
           ambientVolume,
+          rampEnabled,
+          rampDuration,
         })
       )
     } catch (e) {
       logError('Failed to save settings', e)
     }
-  }, [soundEnabled, soundProfile, soundVolume, hapticEnabled, durationMinutes, muteHoldPhases, ambientSound, ambientVolume])
+  }, [soundEnabled, soundProfile, soundVolume, hapticEnabled, durationMinutes, muteHoldPhases, ambientSound, ambientVolume, rampEnabled, rampDuration])
 
   // Save pattern when it changes
   React.useEffect(() => {
@@ -119,6 +152,10 @@ export default function BreathePage() {
     // Stop ambient sound when session ends
     stopAmbientSound()
 
+    // Record to breathing streaks
+    const updatedStreaks = recordBreathingSession(durationMinutes)
+    setStreaks(updatedStreaks)
+
     // Log session to existing practice log
     try {
       const sessions = JSON.parse(localStorage.getItem('ztd_sessions') || '[]')
@@ -136,6 +173,60 @@ export default function BreathePage() {
     }
   }, [durationMinutes, pattern])
 
+  // Apply a purpose preset
+  const applyPreset = React.useCallback((preset: PurposePreset) => {
+    setSelectedPreset(preset)
+    setPattern(preset.pattern)
+    setDurationMinutes(preset.duration)
+    setShowPresets(false)
+    setShowSettings(true)
+
+    // Apply preset's sound and ambient settings if specified
+    if (preset.soundProfile) {
+      setSoundProfile(preset.soundProfile)
+    }
+    if (preset.ambientSound !== undefined) {
+      setAmbientSound(preset.ambientSound)
+    }
+
+    // Set up ramp config if preset has one
+    if (preset.rampConfig) {
+      setRampConfig(preset.rampConfig)
+      setRampEnabled(true)
+      setRampDuration(preset.rampConfig.rampDuration)
+    } else {
+      setRampConfig(null)
+    }
+  }, [])
+
+  // Build ramp config from state if enabled (and no preset ramp)
+  const effectiveRampConfig = React.useMemo((): RampConfig | null => {
+    // If there's a preset ramp config, use it
+    if (rampConfig?.enabled) {
+      return rampConfig
+    }
+    // Otherwise, build from state if ramp is enabled
+    if (!rampEnabled) return null
+
+    // Create a simple ramp: start with easier pattern, end with target
+    const startPattern: BreathPattern = {
+      ...pattern,
+      id: `${pattern.id}-start`,
+      name: `${pattern.name} (Start)`,
+      inhale: Math.max(3, pattern.inhale * 0.7),
+      hold1: pattern.hold1 * 0.5,
+      exhale: Math.max(3, pattern.exhale * 0.7),
+      hold2: pattern.hold2 * 0.5,
+    }
+
+    return {
+      enabled: true,
+      startPattern,
+      endPattern: pattern,
+      rampDuration,
+    }
+  }, [rampEnabled, rampConfig, pattern, rampDuration])
+
   // Timer hook
   const timer = useBreathingTimer({
     pattern,
@@ -145,6 +236,7 @@ export default function BreathePage() {
     soundProfile,
     hapticEnabled,
     muteHoldPhases,
+    rampConfig: effectiveRampConfig,
     onComplete: handleComplete,
   })
 
@@ -168,6 +260,7 @@ export default function BreathePage() {
   const handleStart = React.useCallback(() => {
     setSessionComplete(false)
     setShowSettings(false)
+    setShowPresets(false)
     timer.start()
   }, [timer])
 
@@ -175,6 +268,9 @@ export default function BreathePage() {
     timer.stop()
     stopAmbientSound()
     setShowSettings(true)
+    setShowPresets(true)
+    setSelectedPreset(null)
+    setRampConfig(null)
   }, [timer])
 
   // Fullscreen handling
@@ -383,13 +479,93 @@ export default function BreathePage() {
           </div>
         ) : (
           <div className="max-w-2xl mx-auto">
-            {/* Title - only when not running */}
+            {/* Title and Streaks - only when not running */}
             {!timer.isRunning && (
               <div className="text-center mb-8">
                 <h1 className="text-3xl font-display font-bold">Breathe</h1>
                 <p className="mt-2 text-muted-foreground">
                   Paced breathing for calm and focus
                 </p>
+
+                {/* Streaks display */}
+                {streaks.totalSessions > 0 && (
+                  <div className="mt-4 inline-flex items-center gap-4 px-4 py-2 rounded-full bg-card/50 border border-border/50">
+                    <div className="flex items-center gap-1.5">
+                      <Flame className={cn(
+                        "h-4 w-4",
+                        streaks.currentStreak > 0 ? "text-orange-500" : "text-muted-foreground"
+                      )} aria-hidden="true" />
+                      <span className="text-sm font-medium">{streaks.currentStreak} day streak</span>
+                    </div>
+                    <div className="w-px h-4 bg-border" aria-hidden="true" />
+                    <div className="flex items-center gap-1.5">
+                      <TrendingUp className="h-4 w-4 text-primary" aria-hidden="true" />
+                      <span className="text-sm text-muted-foreground">{streaks.totalSessions} sessions</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Purpose Presets - quick start buttons */}
+            {!timer.isRunning && showPresets && (
+              <div className="mb-8">
+                <h2 className="text-sm font-medium text-muted-foreground mb-3 text-center">Quick Start</h2>
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                  {PURPOSE_PRESETS.map((preset) => {
+                    const IconComponent = PresetIcons[preset.icon] || Wind
+                    return (
+                      <button
+                        key={preset.id}
+                        onClick={() => applyPreset(preset)}
+                        className={cn(
+                          "flex flex-col items-center gap-2 p-4 rounded-xl border transition-all min-h-[100px]",
+                          "hover:border-primary/50 hover:bg-primary/5",
+                          selectedPreset?.id === preset.id
+                            ? "border-primary bg-primary/10"
+                            : "border-border/50 bg-card/30"
+                        )}
+                      >
+                        <IconComponent className={cn(
+                          "h-6 w-6",
+                          selectedPreset?.id === preset.id ? "text-primary" : "text-muted-foreground"
+                        )} />
+                        <div className="text-center">
+                          <span className="text-sm font-medium block">{preset.name}</span>
+                          <span className="text-xs text-muted-foreground">{preset.duration} min</span>
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+                <button
+                  onClick={() => {
+                    setShowPresets(false)
+                    setSelectedPreset(null)
+                  }}
+                  className="mt-3 text-xs text-muted-foreground hover:text-foreground mx-auto block"
+                >
+                  or customize your own
+                </button>
+              </div>
+            )}
+
+            {/* Ramp mode indicator - when running with ramp */}
+            {timer.isRunning && effectiveRampConfig?.enabled && timer.rampProgress < 1 && (
+              <div className="text-center mb-4">
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20">
+                  <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-primary transition-all duration-500"
+                      style={{ width: `${timer.rampProgress * 100}%` }}
+                    />
+                  </div>
+                  <span className="text-xs text-primary">
+                    Ramping: {Math.round(timer.currentPattern.inhale * 10) / 10}s in
+                    {timer.currentPattern.hold1 > 0 && `, ${Math.round(timer.currentPattern.hold1 * 10) / 10}s hold`}
+                    , {Math.round(timer.currentPattern.exhale * 10) / 10}s out
+                  </span>
+                </div>
               </div>
             )}
 
@@ -498,6 +674,13 @@ export default function BreathePage() {
                     onAmbientSoundChange={setAmbientSound}
                     ambientVolume={ambientVolume}
                     onAmbientVolumeChange={setAmbientVolume}
+                    rampEnabled={rampEnabled}
+                    onRampToggle={() => {
+                      setRampEnabled(!rampEnabled)
+                      if (rampEnabled) setRampConfig(null)
+                    }}
+                    rampDuration={rampDuration}
+                    onRampDurationChange={setRampDuration}
                     disabled={timer.isRunning && !timer.isPaused}
                   />
                 </div>

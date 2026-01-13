@@ -20,6 +20,326 @@ export interface BreathingSession {
   breathCount?: number
 }
 
+// ===== RAMP MODE =====
+// Gradually change breath timings during a session
+
+export interface RampConfig {
+  enabled: boolean
+  startPattern: BreathPattern    // Starting pattern (easier/shorter)
+  endPattern: BreathPattern      // Ending pattern (target)
+  rampDuration: number           // Minutes to reach target (0 = instant)
+}
+
+// Calculate current pattern based on ramp progress
+export function getRampedPattern(
+  config: RampConfig,
+  elapsedSeconds: number
+): BreathPattern {
+  if (!config.enabled || config.rampDuration === 0) {
+    return config.endPattern
+  }
+
+  const rampSeconds = config.rampDuration * 60
+  const progress = Math.min(elapsedSeconds / rampSeconds, 1)
+
+  // Ease-out for smoother transition
+  const easedProgress = 1 - Math.pow(1 - progress, 2)
+
+  return {
+    id: 'ramped',
+    name: 'Ramping',
+    description: `Transitioning to ${config.endPattern.name}`,
+    inhale: lerp(config.startPattern.inhale, config.endPattern.inhale, easedProgress),
+    hold1: lerp(config.startPattern.hold1, config.endPattern.hold1, easedProgress),
+    exhale: lerp(config.startPattern.exhale, config.endPattern.exhale, easedProgress),
+    hold2: lerp(config.startPattern.hold2, config.endPattern.hold2, easedProgress),
+  }
+}
+
+// Linear interpolation helper
+function lerp(start: number, end: number, t: number): number {
+  return Math.round((start + (end - start) * t) * 10) / 10 // Round to 1 decimal
+}
+
+// ===== PURPOSE PRESETS =====
+// Quick-start configurations for common use cases
+
+export type PurposePresetId = 'sleep' | 'stress' | 'focus' | 'energy' | 'lung-strength'
+
+export interface PurposePreset {
+  id: PurposePresetId
+  name: string
+  description: string
+  icon: string  // Lucide icon name
+  pattern: BreathPattern
+  duration: number  // minutes
+  rampConfig?: RampConfig
+  ambientSound?: AmbientSound | null
+  soundProfile?: SoundProfile
+}
+
+export const PURPOSE_PRESETS: PurposePreset[] = [
+  {
+    id: 'sleep',
+    name: 'Fall Asleep',
+    description: 'Calm your nervous system for restful sleep',
+    icon: 'Moon',
+    pattern: {
+      id: '4-7-8',
+      name: '4-7-8 Relaxing',
+      description: 'Dr. Weil\'s calming breath',
+      inhale: 4,
+      hold1: 7,
+      exhale: 8,
+      hold2: 0,
+    },
+    duration: 10,
+    ambientSound: 'rain',
+    soundProfile: 'warm-pad',
+  },
+  {
+    id: 'stress',
+    name: 'Stress Relief',
+    description: 'Quick reset for anxious moments',
+    icon: 'Heart',
+    pattern: {
+      id: 'physiological-sigh',
+      name: 'Physiological Sigh',
+      description: 'Stanford research-backed',
+      inhale: 4,
+      hold1: 0,
+      exhale: 6,
+      hold2: 0,
+    },
+    duration: 5,
+    ambientSound: 'ocean',
+    soundProfile: 'ocean-breath',
+  },
+  {
+    id: 'focus',
+    name: 'Deep Focus',
+    description: 'Sharpen attention and clarity',
+    icon: 'Target',
+    pattern: {
+      id: 'box',
+      name: 'Box Breathing',
+      description: 'Navy SEAL technique',
+      inhale: 4,
+      hold1: 4,
+      exhale: 4,
+      hold2: 4,
+    },
+    duration: 8,
+    ambientSound: null,
+    soundProfile: 'minimal',
+  },
+  {
+    id: 'energy',
+    name: 'Morning Energy',
+    description: 'Invigorate and awaken your body',
+    icon: 'Zap',
+    pattern: {
+      id: 'energizing',
+      name: 'Energizing Breath',
+      description: 'Short inhale, short exhale, quick pace',
+      inhale: 3,
+      hold1: 0,
+      exhale: 3,
+      hold2: 0,
+    },
+    duration: 5,
+    ambientSound: 'forest',
+    soundProfile: 'soft-chime',
+  },
+  {
+    id: 'lung-strength',
+    name: 'Lung Training',
+    description: 'Build capacity with progressive holds',
+    icon: 'Wind',
+    pattern: {
+      id: 'lung-builder',
+      name: 'Lung Builder',
+      description: 'Extended holds for capacity',
+      inhale: 5,
+      hold1: 10,
+      exhale: 5,
+      hold2: 5,
+    },
+    duration: 10,
+    rampConfig: {
+      enabled: true,
+      startPattern: {
+        id: 'lung-start',
+        name: 'Lung Start',
+        description: 'Easy start',
+        inhale: 4,
+        hold1: 4,
+        exhale: 4,
+        hold2: 2,
+      },
+      endPattern: {
+        id: 'lung-builder',
+        name: 'Lung Builder',
+        description: 'Extended holds',
+        inhale: 5,
+        hold1: 10,
+        exhale: 5,
+        hold2: 5,
+      },
+      rampDuration: 5, // 5 minutes to reach full pattern
+    },
+    ambientSound: 'wind',
+    soundProfile: 'singing-bowl',
+  },
+]
+
+// ===== BREATHING STREAKS =====
+// Track consecutive days of breathing practice
+
+export interface BreathingStreakData {
+  currentStreak: number
+  longestStreak: number
+  lastPracticeDate: string | null  // ISO date string (YYYY-MM-DD)
+  totalSessions: number
+  totalMinutes: number
+  practiceHistory: string[]  // Array of ISO date strings
+}
+
+const BREATHING_STREAK_KEY = 'ztd_breathing_streaks'
+
+export function getBreathingStreaks(): BreathingStreakData {
+  if (typeof window === 'undefined') {
+    return {
+      currentStreak: 0,
+      longestStreak: 0,
+      lastPracticeDate: null,
+      totalSessions: 0,
+      totalMinutes: 0,
+      practiceHistory: [],
+    }
+  }
+
+  try {
+    const stored = localStorage.getItem(BREATHING_STREAK_KEY)
+    if (stored) {
+      const data = JSON.parse(stored) as BreathingStreakData
+      // Recalculate current streak based on today's date
+      return recalculateStreak(data)
+    }
+  } catch (e) {
+    console.warn('Failed to load breathing streaks:', e)
+  }
+
+  return {
+    currentStreak: 0,
+    longestStreak: 0,
+    lastPracticeDate: null,
+    totalSessions: 0,
+    totalMinutes: 0,
+    practiceHistory: [],
+  }
+}
+
+function recalculateStreak(data: BreathingStreakData): BreathingStreakData {
+  if (!data.lastPracticeDate) {
+    return { ...data, currentStreak: 0 }
+  }
+
+  const today = getDateString(new Date())
+  const yesterday = getDateString(new Date(Date.now() - 86400000))
+  const lastPractice = data.lastPracticeDate
+
+  // If practiced today or yesterday, streak continues
+  if (lastPractice === today || lastPractice === yesterday) {
+    return data
+  }
+
+  // Streak broken - reset current but keep longest
+  return {
+    ...data,
+    currentStreak: 0,
+  }
+}
+
+export function recordBreathingSession(durationMinutes: number): BreathingStreakData {
+  const data = getBreathingStreaks()
+  const today = getDateString(new Date())
+  const yesterday = getDateString(new Date(Date.now() - 86400000))
+
+  // Update totals
+  data.totalSessions += 1
+  data.totalMinutes += durationMinutes
+
+  // Check if already practiced today
+  if (data.lastPracticeDate === today) {
+    // Already practiced today, just update totals
+    saveBreathingStreaks(data)
+    return data
+  }
+
+  // Add to practice history if not already there
+  if (!data.practiceHistory.includes(today)) {
+    data.practiceHistory.push(today)
+    // Keep only last 365 days
+    if (data.practiceHistory.length > 365) {
+      data.practiceHistory = data.practiceHistory.slice(-365)
+    }
+  }
+
+  // Update streak
+  if (data.lastPracticeDate === yesterday) {
+    // Continuing streak
+    data.currentStreak += 1
+  } else if (!data.lastPracticeDate || data.currentStreak === 0) {
+    // Starting new streak
+    data.currentStreak = 1
+  } else {
+    // Streak was broken, starting fresh
+    data.currentStreak = 1
+  }
+
+  // Update longest streak
+  if (data.currentStreak > data.longestStreak) {
+    data.longestStreak = data.currentStreak
+  }
+
+  data.lastPracticeDate = today
+  saveBreathingStreaks(data)
+  return data
+}
+
+function saveBreathingStreaks(data: BreathingStreakData): void {
+  try {
+    localStorage.setItem(BREATHING_STREAK_KEY, JSON.stringify(data))
+  } catch (e) {
+    console.warn('Failed to save breathing streaks:', e)
+  }
+}
+
+function getDateString(date: Date): string {
+  return date.toISOString().split('T')[0]
+}
+
+// Get practice history for heatmap display
+export function getBreathingPracticeHistory(): { date: string; practiced: boolean }[] {
+  const data = getBreathingStreaks()
+  const history: { date: string; practiced: boolean }[] = []
+  const today = new Date()
+
+  // Generate last 90 days
+  for (let i = 89; i >= 0; i--) {
+    const date = new Date(today)
+    date.setDate(date.getDate() - i)
+    const dateStr = getDateString(date)
+    history.push({
+      date: dateStr,
+      practiced: data.practiceHistory.includes(dateStr),
+    })
+  }
+
+  return history
+}
+
 // Preset breathing patterns
 export const BREATH_PRESETS: BreathPattern[] = [
   {
@@ -533,6 +853,8 @@ export interface BreathingSettings {
   muteHoldPhases: boolean  // mute sounds during hold phases
   ambientSound: AmbientSound | null  // background ambient sound
   ambientVolume: number  // 0-1 volume for ambient sounds
+  rampEnabled: boolean  // enable ramp mode
+  rampDuration: number  // minutes to reach target pattern
 }
 
 export const DEFAULT_BREATHING_SETTINGS: BreathingSettings = {
@@ -543,6 +865,8 @@ export const DEFAULT_BREATHING_SETTINGS: BreathingSettings = {
   muteHoldPhases: false,
   ambientSound: null,
   ambientVolume: 0.3,
+  rampEnabled: false,
+  rampDuration: 3,
 }
 
 // ===== AMBIENT SOUNDS =====

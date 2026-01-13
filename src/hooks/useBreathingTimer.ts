@@ -5,8 +5,10 @@ import {
   BreathPhase,
   BreathPattern,
   SoundProfile,
+  RampConfig,
   getActivePhases,
   getCycleDuration,
+  getRampedPattern,
   playPhaseSound,
   vibrate,
 } from '@/lib/breathing'
@@ -21,6 +23,8 @@ export interface BreathingTimerState {
   isRunning: boolean
   isPaused: boolean
   progress: number                // 0-1 progress through current phase
+  currentPattern: BreathPattern   // current pattern (may change during ramp)
+  rampProgress: number            // 0-1 progress through ramp (1 = at target)
 }
 
 interface UseBreathingTimerOptions {
@@ -31,6 +35,7 @@ interface UseBreathingTimerOptions {
   soundProfile?: SoundProfile
   hapticEnabled?: boolean
   muteHoldPhases?: boolean        // mute sounds during hold phases
+  rampConfig?: RampConfig | null  // optional ramp configuration
   onComplete?: (breathCount: number) => void
   onPhaseChange?: (phase: BreathPhase) => void
 }
@@ -43,6 +48,7 @@ export function useBreathingTimer({
   soundProfile = 'singing-bowl',
   hapticEnabled = true,
   muteHoldPhases = false,
+  rampConfig = null,
   onComplete,
   onPhaseChange,
 }: UseBreathingTimerOptions) {
@@ -56,18 +62,23 @@ export function useBreathingTimer({
     isRunning: false,
     isPaused: false,
     progress: 0,
+    currentPattern: rampConfig?.enabled ? rampConfig.startPattern : pattern,
+    rampProgress: 0,
   })
 
   const animationRef = useRef<number | null>(null)
   const lastTimeRef = useRef<number>(0)
-  const phasesRef = useRef(getActivePhases(pattern))
+  const elapsedTimeRef = useRef<number>(0) // Track elapsed time for ramp
+  const phasesRef = useRef(getActivePhases(rampConfig?.enabled ? rampConfig.startPattern : pattern))
   const phaseIndexRef = useRef(0)
   const countdownRef = useRef(3) // 3 second countdown
 
-  // Update phases when pattern changes
+  // Update phases when pattern changes (only when not using ramp)
   useEffect(() => {
-    phasesRef.current = getActivePhases(pattern)
-  }, [pattern])
+    if (!rampConfig?.enabled) {
+      phasesRef.current = getActivePhases(pattern)
+    }
+  }, [pattern, rampConfig])
 
   // Update total duration when it changes
   useEffect(() => {
@@ -122,6 +133,13 @@ export function useBreathingTimer({
         if (newCountdown <= 0) {
           // Start first breathing phase
           phaseIndexRef.current = 0
+          elapsedTimeRef.current = 0 // Reset elapsed time for ramp
+
+          // Get initial pattern (may be ramped start pattern)
+          const currentPattern = rampConfig?.enabled
+            ? getRampedPattern(rampConfig, 0)
+            : pattern
+          phasesRef.current = getActivePhases(currentPattern)
           const phases = phasesRef.current
           const firstPhase = phases[0]
 
@@ -140,6 +158,8 @@ export function useBreathingTimer({
             phaseDuration: firstPhase.duration,
             phaseTimeRemaining: firstPhase.duration,
             progress: 0,
+            currentPattern,
+            rampProgress: 0,
           }
         }
 
@@ -157,12 +177,30 @@ export function useBreathingTimer({
         }
       }
 
+      // Update elapsed time for ramp calculation
+      elapsedTimeRef.current += deltaTime
+
       // Normal breathing phases
       let newPhaseTime = prevState.phaseTimeRemaining - deltaTime
       let newTotalTime = prevState.totalTimeRemaining - deltaTime
       let newBreathCount = prevState.breathCount
       let newPhase: BreathPhase = prevState.phase
       let newPhaseDuration = prevState.phaseDuration
+      let newCurrentPattern = prevState.currentPattern
+      let newRampProgress = prevState.rampProgress
+
+      // Update ramped pattern if ramp is enabled
+      if (rampConfig?.enabled) {
+        const rampSeconds = rampConfig.rampDuration * 60
+        newRampProgress = Math.min(elapsedTimeRef.current / rampSeconds, 1)
+
+        // Only update pattern at the start of each breath cycle (on inhale)
+        // to prevent jarring mid-breath changes
+        if (prevState.phase === 'exhale' && newPhaseTime <= 0) {
+          newCurrentPattern = getRampedPattern(rampConfig, elapsedTimeRef.current)
+          phasesRef.current = getActivePhases(newCurrentPattern)
+        }
+      }
 
       // Check if session complete
       if (newTotalTime <= 0) {
@@ -177,6 +215,7 @@ export function useBreathingTimer({
           breathCount: finalBreathCount,
           isRunning: false,
           progress: 1,
+          rampProgress: 1,
         }
       }
 
@@ -216,17 +255,25 @@ export function useBreathingTimer({
         totalTimeRemaining: Math.max(0, newTotalTime),
         breathCount: newBreathCount,
         progress,
+        currentPattern: newCurrentPattern,
+        rampProgress: newRampProgress,
       }
     })
 
     animationRef.current = requestAnimationFrame(tick)
-  }, [soundEnabled, soundVolume, soundProfile, hapticEnabled, muteHoldPhases, onComplete, onPhaseChange])
+  }, [soundEnabled, soundVolume, soundProfile, hapticEnabled, muteHoldPhases, rampConfig, pattern, onComplete, onPhaseChange])
 
   const start = useCallback(() => {
     // Reset state
     phaseIndexRef.current = 0
     countdownRef.current = 3
     lastTimeRef.current = 0
+    elapsedTimeRef.current = 0
+
+    // Get initial pattern (may be ramped start pattern)
+    const initialPattern = rampConfig?.enabled
+      ? rampConfig.startPattern
+      : pattern
 
     setState(s => ({
       ...s,
@@ -238,10 +285,12 @@ export function useBreathingTimer({
       isRunning: true,
       isPaused: false,
       progress: 0,
+      currentPattern: initialPattern,
+      rampProgress: 0,
     }))
 
     animationRef.current = requestAnimationFrame(tick)
-  }, [tick])
+  }, [tick, rampConfig, pattern])
 
   const pause = useCallback(() => {
     setState(s => ({ ...s, isPaused: true }))
@@ -257,6 +306,10 @@ export function useBreathingTimer({
     if (animationRef.current) {
       cancelAnimationFrame(animationRef.current)
     }
+    elapsedTimeRef.current = 0
+    const initialPattern = rampConfig?.enabled
+      ? rampConfig.startPattern
+      : pattern
     setState(s => ({
       ...s,
       phase: 'idle',
@@ -266,8 +319,10 @@ export function useBreathingTimer({
       isRunning: false,
       isPaused: false,
       progress: 0,
+      currentPattern: initialPattern,
+      rampProgress: 0,
     }))
-  }, [])
+  }, [rampConfig, pattern])
 
   // Cleanup on unmount
   useEffect(() => {

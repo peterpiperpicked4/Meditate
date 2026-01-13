@@ -16,7 +16,7 @@ import {
 import { Slider } from '@/components/ui/slider'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { Volume2, VolumeX, Smartphone, Music, Play, CloudRain, Volume1, ArrowRight } from 'lucide-react'
+import { Volume2, VolumeX, Smartphone, Music, Play, CloudRain, Volume1, ArrowRight, TrendingUp } from 'lucide-react'
 
 interface BreathingControlsProps {
   pattern: BreathPattern
@@ -37,6 +37,10 @@ interface BreathingControlsProps {
   onAmbientSoundChange: (sound: AmbientSound | null) => void
   ambientVolume: number
   onAmbientVolumeChange: (volume: number) => void
+  rampEnabled?: boolean
+  onRampToggle?: () => void
+  rampDuration?: number
+  onRampDurationChange?: (minutes: number) => void
   disabled?: boolean
 }
 
@@ -59,6 +63,10 @@ export function BreathingControls({
   onAmbientSoundChange,
   ambientVolume,
   onAmbientVolumeChange,
+  rampEnabled = false,
+  onRampToggle,
+  rampDuration = 3,
+  onRampDurationChange,
   disabled = false,
 }: BreathingControlsProps) {
   const [showCustom, setShowCustom] = React.useState(false)
@@ -251,6 +259,59 @@ export function BreathingControls({
           <span>30 min</span>
         </div>
       </div>
+
+      {/* Ramp Mode */}
+      {onRampToggle && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+              <label htmlFor="ramp-toggle" className="text-sm font-medium text-muted-foreground">
+                Ramp Mode
+              </label>
+            </div>
+            <Button
+              id="ramp-toggle"
+              variant="ghost"
+              size="sm"
+              onClick={onRampToggle}
+              disabled={disabled}
+              aria-pressed={rampEnabled}
+              className={cn(
+                'min-h-[44px] px-4',
+                rampEnabled ? 'text-primary bg-primary/10' : 'text-muted-foreground'
+              )}
+            >
+              {rampEnabled ? 'On' : 'Off'}
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Start with easier timings, gradually build to full pattern
+          </p>
+          {rampEnabled && onRampDurationChange && (
+            <div>
+              <div className="flex justify-between mb-2">
+                <label htmlFor="slider-ramp-duration" className="text-sm">Ramp Duration</label>
+                <span className="text-sm font-mono">{rampDuration} min</span>
+              </div>
+              <Slider
+                id="slider-ramp-duration"
+                value={[rampDuration]}
+                onValueChange={([v]) => onRampDurationChange(v)}
+                min={1}
+                max={10}
+                step={1}
+                disabled={disabled}
+                aria-valuetext={`${rampDuration} minutes to reach target`}
+                className="[&_[role=slider]]:h-5 [&_[role=slider]]:w-5"
+              />
+              <p className="mt-1 text-xs text-muted-foreground">
+                Time to reach full {pattern.name} pattern
+              </p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Sound settings section */}
       {soundEnabled && (
