@@ -9,8 +9,8 @@ export interface MusicTrack {
 }
 
 export const MUSIC_TRACKS: MusicTrack[] = [
-  { id: 'morning-mist', name: 'Morning Mist', src: '/music/Morning Mist.mp3' },
   { id: 'space-between', name: 'The Space Between', src: '/music/The Space Between.mp3' },
+  { id: 'morning-mist', name: 'Morning Mist', src: '/music/Morning Mist.mp3' },
   { id: 'peace', name: 'Peace', src: '/music/Peace.mp3' },
   { id: 'breathe', name: 'Breathe', src: '/music/Breathe.mp3' },
 ]
@@ -26,6 +26,8 @@ interface MusicContextType {
   pause: () => void
   toggle: () => void
   selectTrack: (track: MusicTrack) => void
+  nextTrack: () => void
+  prevTrack: () => void
 }
 
 const MusicContext = React.createContext<MusicContextType | null>(null)
@@ -77,22 +79,42 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     }
   }, [volume, isLooping, currentTrack])
 
+  // Refs to track state for event handler
+  const isLoopingRef = React.useRef(isLooping)
+  const currentTrackRef = React.useRef(currentTrack)
+
+  React.useEffect(() => {
+    isLoopingRef.current = isLooping
+  }, [isLooping])
+
+  React.useEffect(() => {
+    currentTrackRef.current = currentTrack
+  }, [currentTrack])
+
   // Initialize audio element
   React.useEffect(() => {
     if (typeof window === 'undefined') return
 
     const audio = new Audio()
-    audio.loop = isLooping
+    audio.loop = false // We handle looping manually for next track feature
     audio.volume = volume
     audioRef.current = audio
 
     audio.addEventListener('ended', () => {
-      // If looping is enabled but event fires, restart
-      if (isLooping) {
+      if (isLoopingRef.current) {
+        // Repeat same track
         audio.currentTime = 0
         audio.play()
       } else {
-        setIsPlaying(false)
+        // Go to next track
+        const current = currentTrackRef.current
+        const currentIndex = current ? MUSIC_TRACKS.findIndex(t => t.id === current.id) : -1
+        const nextIndex = (currentIndex + 1) % MUSIC_TRACKS.length
+        const next = MUSIC_TRACKS[nextIndex]
+        setCurrentTrack(next)
+        audio.src = next.src
+        audio.load()
+        audio.play().catch(() => {})
       }
     })
 
@@ -190,6 +212,38 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     }
   }, [isPlaying])
 
+  const nextTrack = React.useCallback(() => {
+    const currentIndex = currentTrack
+      ? MUSIC_TRACKS.findIndex(t => t.id === currentTrack.id)
+      : -1
+    const nextIndex = (currentIndex + 1) % MUSIC_TRACKS.length
+    const next = MUSIC_TRACKS[nextIndex]
+    setCurrentTrack(next)
+    if (audioRef.current) {
+      audioRef.current.src = next.src
+      audioRef.current.load()
+      if (isPlaying) {
+        audioRef.current.play().catch(() => setIsPlaying(false))
+      }
+    }
+  }, [currentTrack, isPlaying])
+
+  const prevTrack = React.useCallback(() => {
+    const currentIndex = currentTrack
+      ? MUSIC_TRACKS.findIndex(t => t.id === currentTrack.id)
+      : 0
+    const prevIndex = currentIndex <= 0 ? MUSIC_TRACKS.length - 1 : currentIndex - 1
+    const prev = MUSIC_TRACKS[prevIndex]
+    setCurrentTrack(prev)
+    if (audioRef.current) {
+      audioRef.current.src = prev.src
+      audioRef.current.load()
+      if (isPlaying) {
+        audioRef.current.play().catch(() => setIsPlaying(false))
+      }
+    }
+  }, [currentTrack, isPlaying])
+
   return (
     <MusicContext.Provider value={{
       currentTrack,
@@ -202,6 +256,8 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       pause,
       toggle,
       selectTrack,
+      nextTrack,
+      prevTrack,
     }}>
       {children}
     </MusicContext.Provider>

@@ -1,17 +1,47 @@
 'use client'
 
 import * as React from 'react'
-import { Music, Play, Pause, Volume2, VolumeX, ChevronDown, Repeat } from 'lucide-react'
+import { Music, Play, Pause, Volume2, VolumeX, ChevronDown, Repeat, SkipForward, SkipBack } from 'lucide-react'
 import { useMusic, MUSIC_TRACKS } from '@/contexts/MusicContext'
 import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
 import { cn } from '@/lib/utils'
 
 export function MusicPlayer() {
-  const { currentTrack, isPlaying, volume, isLooping, setVolume, setLooping, toggle, selectTrack } = useMusic()
+  const { currentTrack, isPlaying, volume, isLooping, setVolume, setLooping, toggle, selectTrack, nextTrack, prevTrack } = useMusic()
   const [isExpanded, setIsExpanded] = React.useState(false)
   const [isMuted, setIsMuted] = React.useState(false)
   const [prevVolume, setPrevVolume] = React.useState(volume)
+  const panelRef = React.useRef<HTMLDivElement>(null)
+  const containerRef = React.useRef<HTMLDivElement>(null)
+
+  // Click outside to close
+  React.useEffect(() => {
+    if (!isExpanded) return
+
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsExpanded(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [isExpanded])
+
+  // M keyboard shortcut to toggle music
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
+      if (e.key === 'm' || e.key === 'M') {
+        if (!e.ctrlKey && !e.metaKey) {
+          toggle()
+        }
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [toggle])
 
   const handleMuteToggle = () => {
     if (isMuted) {
@@ -25,15 +55,16 @@ export function MusicPlayer() {
   }
 
   return (
-    <div className="fixed bottom-4 right-4 z-50">
+    <div ref={containerRef} className="fixed bottom-4 right-4 z-50">
       {/* Expanded panel */}
       <div
+        ref={panelRef}
         className={cn(
-          'absolute bottom-full right-0 mb-2 w-64 rounded-xl border border-border/50 bg-card/95 backdrop-blur-xl shadow-lg overflow-hidden transition-all duration-300',
+          'absolute bottom-full right-0 mb-2 w-64 rounded-xl border border-border/50 bg-card/95 backdrop-blur-xl shadow-lg overflow-hidden transition-all duration-200',
           isExpanded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2 pointer-events-none'
         )}
       >
-        <div className="p-4 space-y-4">
+        <div className="p-4 space-y-4 max-h-[70vh] overflow-y-auto">
           <h3 className="text-sm font-medium text-muted-foreground">Background Music</h3>
 
           {/* Track selection */}
@@ -55,14 +86,42 @@ export function MusicPlayer() {
                 <Music className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
                 <span className="text-sm font-medium truncate">{track.name}</span>
                 {currentTrack?.id === track.id && isPlaying && (
-                  <span className="ml-auto flex gap-0.5" aria-label="Now playing">
-                    <span className="w-1 h-3 bg-primary rounded-full animate-pulse" />
-                    <span className="w-1 h-3 bg-primary rounded-full animate-pulse" style={{ animationDelay: '0.2s' }} />
-                    <span className="w-1 h-3 bg-primary rounded-full animate-pulse" style={{ animationDelay: '0.4s' }} />
+                  <span className="ml-auto flex gap-0.5 items-end" aria-label="Now playing">
+                    <span className="w-1 h-2 bg-primary rounded-full animate-pulse" />
+                    <span className="w-1 h-3 bg-primary rounded-full animate-pulse" style={{ animationDelay: '0.15s' }} />
+                    <span className="w-1 h-2.5 bg-primary rounded-full animate-pulse" style={{ animationDelay: '0.3s' }} />
                   </span>
                 )}
               </button>
             ))}
+          </div>
+
+          {/* Playback controls */}
+          <div className="flex items-center justify-center gap-2">
+            <button
+              onClick={prevTrack}
+              className="p-2 rounded-lg hover:bg-muted/50 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center text-muted-foreground hover:text-foreground"
+              aria-label="Previous track"
+            >
+              <SkipBack className="h-4 w-4" aria-hidden="true" />
+            </button>
+            <button
+              onClick={toggle}
+              className={cn(
+                'p-3 rounded-full transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center',
+                isPlaying ? 'bg-primary text-primary-foreground' : 'bg-muted/50 text-foreground hover:bg-muted'
+              )}
+              aria-label={isPlaying ? 'Pause' : 'Play'}
+            >
+              {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5 ml-0.5" />}
+            </button>
+            <button
+              onClick={nextTrack}
+              className="p-2 rounded-lg hover:bg-muted/50 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center text-muted-foreground hover:text-foreground"
+              aria-label="Next track"
+            >
+              <SkipForward className="h-4 w-4" aria-hidden="true" />
+            </button>
           </div>
 
           {/* Loop toggle */}
@@ -143,7 +202,7 @@ export function MusicPlayer() {
 
         {/* Track name when playing */}
         {currentTrack && (
-          <span className="text-xs font-medium text-muted-foreground px-1 max-w-[80px] truncate hidden sm:block">
+          <span className="text-xs font-medium text-muted-foreground px-1 max-w-[100px] truncate hidden sm:block">
             {currentTrack.name}
           </span>
         )}
