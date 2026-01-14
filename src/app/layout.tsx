@@ -3,6 +3,8 @@ import './globals.css'
 import { Header } from '@/components/layout/header'
 import { Footer } from '@/components/layout/footer'
 import { AmbientParticles } from '@/components/ambient-particles'
+import { MusicProvider } from '@/contexts/MusicContext'
+import { MusicPlayer } from '@/components/MusicPlayer'
 
 export const metadata: Metadata = {
   title: {
@@ -52,19 +54,22 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className="font-body antialiased">
-        {/* Ambient floating particles for library dust effect */}
-        <AmbientParticles />
-        <a
-          href="#main-content"
-          className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md focus:outline-none"
-        >
-          Skip to main content
-        </a>
-        <div className="relative flex min-h-screen flex-col">
-          <Header />
-          <main id="main-content" className="flex-1">{children}</main>
-          <Footer />
-        </div>
+        <MusicProvider>
+          {/* Ambient floating particles for library dust effect */}
+          <AmbientParticles />
+          <a
+            href="#main-content"
+            className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md focus:outline-none"
+          >
+            Skip to main content
+          </a>
+          <div className="relative flex min-h-screen flex-col">
+            <Header />
+            <main id="main-content" className="flex-1">{children}</main>
+            <Footer />
+          </div>
+          <MusicPlayer />
+        </MusicProvider>
       </body>
     </html>
   )
