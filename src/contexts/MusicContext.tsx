@@ -11,6 +11,7 @@ export interface MusicTrack {
 export const MUSIC_TRACKS: MusicTrack[] = [
   { id: 'morning-mist', name: 'Morning Mist', src: '/music/Morning Mist.mp3' },
   { id: 'space-between', name: 'The Space Between', src: '/music/The Space Between.mp3' },
+  { id: 'peace', name: 'Peace', src: '/music/Peace.mp3' },
 ]
 
 interface MusicContextType {
