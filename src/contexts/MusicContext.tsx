@@ -17,7 +17,9 @@ interface MusicContextType {
   currentTrack: MusicTrack | null
   isPlaying: boolean
   volume: number
+  isLooping: boolean
   setVolume: (volume: number) => void
+  setLooping: (loop: boolean) => void
   play: (track?: MusicTrack) => void
   pause: () => void
   toggle: () => void
@@ -33,6 +35,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   const [currentTrack, setCurrentTrack] = React.useState<MusicTrack | null>(null)
   const [isPlaying, setIsPlaying] = React.useState(false)
   const [volume, setVolumeState] = React.useState(DEFAULT_VOLUME)
+  const [isLooping, setIsLooping] = React.useState(true) // Loop by default
   const audioRef = React.useRef<HTMLAudioElement | null>(null)
 
   // Load saved settings
@@ -43,6 +46,9 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
         const settings = JSON.parse(saved)
         if (settings.volume !== undefined) {
           setVolumeState(settings.volume)
+        }
+        if (settings.isLooping !== undefined) {
+          setIsLooping(settings.isLooping)
         }
         if (settings.trackId) {
           const track = MUSIC_TRACKS.find(t => t.id === settings.trackId)
@@ -61,26 +67,31 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     try {
       localStorage.setItem(MUSIC_STORAGE_KEY, JSON.stringify({
         volume,
+        isLooping,
         trackId: currentTrack?.id,
       }))
     } catch (e) {
       // Ignore
     }
-  }, [volume, currentTrack])
+  }, [volume, isLooping, currentTrack])
 
   // Initialize audio element
   React.useEffect(() => {
     if (typeof window === 'undefined') return
 
     const audio = new Audio()
-    audio.loop = true
+    audio.loop = isLooping
     audio.volume = volume
     audioRef.current = audio
 
     audio.addEventListener('ended', () => {
-      // Loop is enabled, but just in case
-      audio.currentTime = 0
-      audio.play()
+      // If looping is enabled but event fires, restart
+      if (isLooping) {
+        audio.currentTime = 0
+        audio.play()
+      } else {
+        setIsPlaying(false)
+      }
     })
 
     return () => {
@@ -88,6 +99,13 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       audio.src = ''
     }
   }, [])
+
+  // Update loop setting on audio element
+  React.useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.loop = isLooping
+    }
+  }, [isLooping])
 
   // Update volume on audio element
   React.useEffect(() => {
@@ -114,6 +132,10 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
 
   const setVolume = React.useCallback((newVolume: number) => {
     setVolumeState(Math.max(0, Math.min(1, newVolume)))
+  }, [])
+
+  const setLooping = React.useCallback((loop: boolean) => {
+    setIsLooping(loop)
   }, [])
 
   const play = React.useCallback((track?: MusicTrack) => {
@@ -171,7 +193,9 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       currentTrack,
       isPlaying,
       volume,
+      isLooping,
       setVolume,
+      setLooping,
       play,
       pause,
       toggle,

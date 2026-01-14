@@ -1,14 +1,14 @@
 'use client'
 
 import * as React from 'react'
-import { Music, Play, Pause, Volume2, VolumeX, ChevronDown, ChevronUp } from 'lucide-react'
+import { Music, Play, Pause, Volume2, VolumeX, ChevronDown, Repeat } from 'lucide-react'
 import { useMusic, MUSIC_TRACKS } from '@/contexts/MusicContext'
 import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
 import { cn } from '@/lib/utils'
 
 export function MusicPlayer() {
-  const { currentTrack, isPlaying, volume, setVolume, toggle, selectTrack } = useMusic()
+  const { currentTrack, isPlaying, volume, isLooping, setVolume, setLooping, toggle, selectTrack } = useMusic()
   const [isExpanded, setIsExpanded] = React.useState(false)
   const [isMuted, setIsMuted] = React.useState(false)
   const [prevVolume, setPrevVolume] = React.useState(volume)
@@ -65,6 +65,24 @@ export function MusicPlayer() {
             ))}
           </div>
 
+          {/* Loop toggle */}
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-muted-foreground">Repeat</span>
+            <button
+              onClick={() => setLooping(!isLooping)}
+              className={cn(
+                'p-2 rounded-lg transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center',
+                isLooping
+                  ? 'bg-primary/20 text-primary'
+                  : 'bg-muted/30 text-muted-foreground hover:bg-muted/50'
+              )}
+              aria-label={isLooping ? 'Disable repeat' : 'Enable repeat'}
+              aria-pressed={isLooping}
+            >
+              <Repeat className="h-4 w-4" aria-hidden="true" />
+            </button>
+          </div>
+
           {/* Volume control */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
@@ -101,17 +119,18 @@ export function MusicPlayer() {
         </div>
       </div>
 
-      {/* Main button */}
-      <div className="flex items-center gap-2">
+      {/* Main button - larger and more visible */}
+      <div className="flex items-center gap-2 bg-card/90 backdrop-blur-xl rounded-full p-1.5 border border-border shadow-xl">
         {/* Play/Pause button */}
         <Button
-          variant="outline"
+          variant={isPlaying ? 'default' : 'ghost'}
           size="icon"
           onClick={toggle}
           className={cn(
-            'h-12 w-12 rounded-full border-border/50 bg-card/95 backdrop-blur-xl shadow-lg',
-            'hover:bg-card hover:border-primary/50',
-            isPlaying && 'border-primary/50 bg-primary/10'
+            'h-11 w-11 rounded-full transition-all',
+            isPlaying
+              ? 'bg-primary text-primary-foreground shadow-glow'
+              : 'hover:bg-primary/20 text-foreground'
           )}
           aria-label={isPlaying ? 'Pause background music' : 'Play background music'}
         >
@@ -122,15 +141,22 @@ export function MusicPlayer() {
           )}
         </Button>
 
+        {/* Track name when playing */}
+        {currentTrack && (
+          <span className="text-xs font-medium text-muted-foreground px-1 max-w-[80px] truncate hidden sm:block">
+            {currentTrack.name}
+          </span>
+        )}
+
         {/* Expand/collapse button */}
         <Button
-          variant="outline"
+          variant="ghost"
           size="icon"
           onClick={() => setIsExpanded(!isExpanded)}
           className={cn(
-            'h-12 w-12 rounded-full border-border/50 bg-card/95 backdrop-blur-xl shadow-lg',
-            'hover:bg-card hover:border-primary/50',
-            isExpanded && 'border-primary/50'
+            'h-11 w-11 rounded-full transition-all',
+            'hover:bg-muted/50 text-foreground',
+            isExpanded && 'bg-muted/50'
           )}
           aria-label={isExpanded ? 'Close music menu' : 'Open music menu'}
           aria-expanded={isExpanded}

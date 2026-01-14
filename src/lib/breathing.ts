@@ -876,7 +876,7 @@ export const DEFAULT_BREATHING_SETTINGS: BreathingSettings = {
   defaultDuration: 5,
   muteHoldPhases: false,
   ambientSound: null,
-  ambientVolume: 0.08,  // Default much quieter (was 0.3)
+  ambientVolume: 0.1,  // Default 10% volume
   rampEnabled: false,
   rampDuration: 3,
 }
