@@ -78,6 +78,35 @@ export interface PurposePreset {
   soundProfile?: SoundProfile
 }
 
+// ===== FULL EXPERIENCE CONFIG =====
+// One-click immersive meditation with all features enabled
+
+export interface FullExperienceConfig {
+  patternId: string
+  duration: number
+  soundEnabled: boolean
+  soundProfile: SoundProfile
+  soundVolume: number
+  ambientSound: AmbientSound
+  ambientVolume: number
+  musicTrackId: string
+  musicVolume: number
+  hapticEnabled: boolean
+}
+
+export const FULL_EXPERIENCE_CONFIG: FullExperienceConfig = {
+  patternId: '4-7-8',
+  duration: 10,
+  soundEnabled: true,
+  soundProfile: 'singing-bowl',
+  soundVolume: 0.5,
+  ambientSound: 'rain',
+  ambientVolume: 0.15,
+  musicTrackId: 'space-between',
+  musicVolume: 0.4,
+  hapticEnabled: true,
+}
+
 export const PURPOSE_PRESETS: PurposePreset[] = [
   {
     id: 'sleep',

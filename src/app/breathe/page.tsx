@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import Link from 'next/link'
-import { Play, Pause, Square, Timer, ArrowLeft, Settings, Check, Maximize, Minimize, Moon, Heart, Target, Zap, Wind, Flame, TrendingUp } from 'lucide-react'
+import { Play, Pause, Square, Timer, ArrowLeft, Settings, Check, Maximize, Minimize, Moon, Heart, Target, Zap, Wind, Flame, TrendingUp, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { BreathingVisual } from '@/components/breathe/BreathingVisual'
 import { BreathingControls } from '@/components/breathe/BreathingControls'
@@ -17,12 +17,14 @@ import {
   RampConfig,
   PurposePreset,
   PURPOSE_PRESETS,
+  FULL_EXPERIENCE_CONFIG,
   getBreathingStreaks,
   recordBreathingSession,
   startAmbientSound,
   stopAmbientSound,
   setAmbientVolume as updateAmbientVolume,
 } from '@/lib/breathing'
+import { useMusic, MUSIC_TRACKS } from '@/contexts/MusicContext'
 import { cn } from '@/lib/utils'
 
 // Default to 4-7-8 pattern
@@ -52,6 +54,9 @@ function logError(context: string, error: unknown) {
 }
 
 export default function BreathePage() {
+  // Music context for Full Experience mode
+  const { play: playMusic, selectTrack, setVolume: setMusicVolume } = useMusic()
+
   // State
   const [pattern, setPattern] = React.useState<BreathPattern>(DEFAULT_PATTERN)
   const [durationMinutes, setDurationMinutes] = React.useState(DEFAULT_BREATHING_SETTINGS.defaultDuration)
@@ -205,6 +210,51 @@ export default function BreathePage() {
       setRampConfig(null)
     }
   }, [])
+
+  // Start Full Experience mode - one-click immersive meditation
+  const startFullExperience = React.useCallback(() => {
+    const config = FULL_EXPERIENCE_CONFIG
+
+    // Apply breathing pattern
+    const targetPattern = BREATH_PRESETS.find(p => p.id === config.patternId) || DEFAULT_PATTERN
+    setPattern(targetPattern)
+    setDurationMinutes(config.duration)
+
+    // Apply sound settings
+    setSoundEnabled(config.soundEnabled)
+    setSoundProfile(config.soundProfile)
+    setSoundVolume(config.soundVolume)
+
+    // Apply ambient settings
+    setAmbientSound(config.ambientSound)
+    setAmbientVolume(config.ambientVolume)
+
+    // Apply haptic setting
+    setHapticEnabled(config.hapticEnabled)
+
+    // Clear any preset/ramp settings
+    setSelectedPreset(null)
+    setRampConfig(null)
+    setRampEnabled(false)
+
+    // Start background music
+    const track = MUSIC_TRACKS.find(t => t.id === config.musicTrackId)
+    if (track) {
+      selectTrack(track)
+      setMusicVolume(config.musicVolume)
+      playMusic(track)
+    }
+
+    // Hide UI and start session
+    setSessionComplete(false)
+    setShowSettings(false)
+    setShowPresets(false)
+
+    // Small delay to allow state to update before starting timer
+    setTimeout(() => {
+      timer.start()
+    }, 50)
+  }, [playMusic, selectTrack, setMusicVolume, timer])
 
   // Build ramp config from state if enabled (and no preset ramp)
   const effectiveRampConfig = React.useMemo((): RampConfig | null => {
@@ -516,6 +566,41 @@ export default function BreathePage() {
                     </div>
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Full Experience - one-click immersive meditation */}
+            {!timer.isRunning && showPresets && (
+              <div className="mb-6">
+                <button
+                  onClick={startFullExperience}
+                  className={cn(
+                    "w-full p-5 rounded-2xl border transition-all",
+                    "bg-gradient-to-br from-primary/20 via-primary/10 to-accent/10",
+                    "border-primary/30 hover:border-primary/50",
+                    "hover:shadow-lg hover:shadow-primary/10",
+                    "focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2",
+                    "group"
+                  )}
+                  aria-label="Start Full Experience: 10 minute meditation with 4-7-8 breathing, rain sounds, and relaxing music"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center group-hover:bg-primary/30 transition-colors">
+                      <Sparkles className="h-6 w-6 text-primary" aria-hidden="true" />
+                    </div>
+                    <div className="flex-1 text-left">
+                      <h2 className="text-lg font-semibold text-foreground">Full Experience</h2>
+                      <p className="text-sm text-muted-foreground">
+                        10 min · 4-7-8 breath · Rain · Music
+                      </p>
+                    </div>
+                    <div className="flex-shrink-0">
+                      <span className="inline-flex items-center px-3 py-1.5 rounded-full bg-primary text-primary-foreground text-sm font-medium group-hover:bg-primary/90 transition-colors">
+                        Start
+                      </span>
+                    </div>
+                  </div>
+                </button>
               </div>
             )}
 
