@@ -658,7 +658,7 @@ export default function BreathePage() {
                         aria-label={`${preset.name}: ${preset.description}. ${preset.duration} minute session.`}
                         aria-pressed={isSelected}
                         className={cn(
-                          "flex flex-col items-center gap-2 p-4 rounded-xl border transition-all min-h-[100px] min-w-[44px]",
+                          "flex flex-col items-center gap-2 p-4 rounded-xl border transition-all min-h-[100px] min-w-[80px]",
                           "hover:border-primary/50 hover:bg-primary/5 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2",
                           isSelected
                             ? "border-primary bg-primary/10"
@@ -796,7 +796,8 @@ export default function BreathePage() {
                 <div
                   ref={settingsPanelRef}
                   className="mt-8 p-6 rounded-xl border border-border/50 bg-card/30"
-                  role="region"
+                  role={timer.isRunning ? "dialog" : "region"}
+                  aria-modal={timer.isRunning ? "true" : undefined}
                   aria-label="Breathing session settings"
                 >
                   <BreathingControls

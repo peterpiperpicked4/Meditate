@@ -60,7 +60,7 @@ export function MusicPlayer() {
       <div
         ref={panelRef}
         className={cn(
-          'absolute bottom-full right-0 mb-2 w-64 rounded-xl border border-border/50 bg-card/95 backdrop-blur-xl shadow-lg overflow-hidden transition-all duration-200',
+          'absolute bottom-full right-0 mb-2 w-[calc(100vw-2rem)] max-w-64 rounded-xl border border-border/50 bg-card/95 backdrop-blur-xl shadow-lg overflow-hidden transition-all duration-200',
           isExpanded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2 pointer-events-none'
         )}
       >

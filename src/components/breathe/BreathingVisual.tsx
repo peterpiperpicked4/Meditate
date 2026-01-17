@@ -1,5 +1,6 @@
 'use client'
 
+import * as React from 'react'
 import { BreathPhase, formatPhase } from '@/lib/breathing'
 import { cn } from '@/lib/utils'
 
@@ -14,7 +15,7 @@ interface BreathingVisualProps {
   isPaused: boolean
 }
 
-export function BreathingVisual({
+export const BreathingVisual = React.memo(function BreathingVisual({
   phase,
   progress,
   phaseTimeRemaining,
@@ -199,7 +200,7 @@ export function BreathingVisual({
 
       {/* Session info below circle */}
       {isRunning && phase !== 'countdown' && (
-        <div className="mt-8 flex items-center gap-8 text-sm text-muted-foreground">
+        <div className="mt-8 flex items-center gap-4 sm:gap-8 text-sm text-muted-foreground">
           <div className="text-center" role="group" aria-labelledby="time-remaining-label">
             <span id="time-remaining-value" className="block text-2xl font-mono text-foreground">
               {Math.floor(totalTimeRemaining / 60)}:{(Math.floor(totalTimeRemaining) % 60).toString().padStart(2, '0')}
@@ -224,4 +225,6 @@ export function BreathingVisual({
       </div>
     </div>
   )
-}
+})
+
+BreathingVisual.displayName = 'BreathingVisual'

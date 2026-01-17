@@ -48,7 +48,7 @@ export default function StartPage() {
         {/* What meditation is NOT */}
         <section className="mt-12">
           <h2 className="text-2xl font-bold">What Meditation Is Not</h2>
-          <div className="mt-6 space-y-4">
+          <ul className="mt-6 space-y-4" aria-label="Common misconceptions about meditation">
             {[
               {
                 myth: 'Emptying your mind',
@@ -76,7 +76,7 @@ export default function StartPage() {
                   'People with busy minds often benefit most. The restlessness gives you more opportunities to practice returning.',
               },
             ].map((item, index) => (
-              <div key={index} className="flex gap-4">
+              <li key={index} className="flex gap-4">
                 <AlertCircle className="h-5 w-5 mt-0.5 flex-shrink-0 text-muted-foreground" aria-hidden="true" />
                 <div>
                   <p className="font-medium">Not: &quot;{item.myth}&quot;</p>
@@ -84,9 +84,9 @@ export default function StartPage() {
                     {item.reality}
                   </p>
                 </div>
-              </div>
+              </li>
             ))}
-          </div>
+          </ul>
         </section>
 
         {/* Your First 10-Minute Sit */}
@@ -369,7 +369,7 @@ export default function StartPage() {
         {/* Troubleshooting Preview */}
         <section className="mt-16">
           <h2 className="text-2xl font-bold">Common Questions</h2>
-          <div className="mt-6 space-y-6">
+          <dl className="mt-6 space-y-6">
             {[
               {
                 q: 'What if I can\'t stop thinking?',
@@ -389,11 +389,11 @@ export default function StartPage() {
               },
             ].map((item, index) => (
               <div key={index}>
-                <h4 className="font-semibold">{item.q}</h4>
-                <p className="mt-1 text-muted-foreground">{item.a}</p>
+                <dt className="font-semibold">{item.q}</dt>
+                <dd className="mt-1 text-muted-foreground">{item.a}</dd>
               </div>
             ))}
-          </div>
+          </dl>
           <p className="mt-6">
             More help in{' '}
             <Link href="/troubleshooting" className="text-primary underline">
