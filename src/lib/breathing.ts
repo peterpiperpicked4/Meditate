@@ -244,7 +244,7 @@ export const PURPOSE_PRESETS: PurposePreset[] = [
     },
     duration: 5,
     ambientSound: 'ocean',
-    soundProfile: 'ocean-breath',
+    soundProfile: 'warm-pad',
   },
   {
     id: 'focus',
@@ -582,14 +582,14 @@ export const SOUND_PROFILES: SoundProfileInfo[] = [
     description: 'Rich, harmonic tones like a Tibetan singing bowl',
   },
   {
+    id: 'human-voice',
+    name: 'Human Voice',
+    description: 'Gentle vocal tones to guide your breath',
+  },
+  {
     id: 'soft-chime',
     name: 'Soft Chime',
     description: 'Gentle, airy bell-like sounds',
-  },
-  {
-    id: 'ocean-breath',
-    name: 'Ocean Breath',
-    description: 'Soft whooshing sounds that mimic waves',
   },
   {
     id: 'warm-pad',
@@ -601,16 +601,9 @@ export const SOUND_PROFILES: SoundProfileInfo[] = [
     name: 'Minimal',
     description: 'Subtle, almost subliminal cues',
   },
-  {
-    id: 'classic',
-    name: 'Classic',
-    description: 'Simple sine wave tones',
-  },
-  {
-    id: 'human-voice',
-    name: 'Human Voice',
-    description: 'Gentle vocal tones to guide your breath',
-  },
+  // Hidden profiles (still functional if selected programmatically)
+  // { id: 'ocean-breath', name: 'Ocean Breath', description: 'Soft whooshing sounds that mimic waves' },
+  // { id: 'classic', name: 'Classic', description: 'Simple sine wave tones' },
 ]
 
 // Audio context singleton
