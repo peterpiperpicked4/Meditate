@@ -890,6 +890,7 @@ function playClassic(frequency: number, volume: number, duration: number = 0.2):
 
 // ===== HUMAN VOICE =====
 // Gentle vocal tones - inhale on C3, exhale on G2, silence for holds
+// Plays only half the audio duration, then fades out
 function playHumanVoice(phase: BreathPhase, volume: number): void {
   // Only play for inhale and exhale - holds are silent
   if (phase !== 'inhale' && phase !== 'exhale') {
@@ -901,14 +902,19 @@ function playHumanVoice(phase: BreathPhase, volume: number): void {
     : '/music/voice-exhale.mp3'  // G2 tone
 
   const audio = new Audio(audioFile)
-  audio.volume = volume * 0.5 // Slightly reduced for blend
+  audio.volume = volume * 0.4 // 40% of passed volume for gentle blend
 
   let fadeInterval: ReturnType<typeof setInterval> | null = null
+  let halfDurationTimeout: ReturnType<typeof setTimeout> | null = null
 
   const cleanup = () => {
     if (fadeInterval) {
       clearInterval(fadeInterval)
       fadeInterval = null
+    }
+    if (halfDurationTimeout) {
+      clearTimeout(halfDurationTimeout)
+      halfDurationTimeout = null
     }
     try {
       audio.pause()
@@ -918,27 +924,37 @@ function playHumanVoice(phase: BreathPhase, volume: number): void {
     }
   }
 
-  audio.play().then(() => {
-    // Gentle fade out over 2 seconds
-    const startVolume = audio.volume
-    const fadeOutDuration = 2
-    const fadeStartTime = Date.now()
-    fadeInterval = setInterval(() => {
-      const elapsed = (Date.now() - fadeStartTime) / 1000
-      if (elapsed >= fadeOutDuration) {
-        cleanup()
-      } else {
-        const fadeProgress = elapsed / fadeOutDuration
-        audio.volume = startVolume * (1 - fadeProgress)
-      }
-    }, 50)
-  }).catch(() => {
-    cleanup()
+  // Wait for metadata to get duration, then play half
+  audio.addEventListener('loadedmetadata', () => {
+    const halfDuration = audio.duration / 2
+    const fadeOutDuration = Math.min(1.5, halfDuration * 0.5) // Fade over 1.5s or half of remaining
+
+    audio.play().then(() => {
+      // Start fade at half duration
+      halfDurationTimeout = setTimeout(() => {
+        const startVolume = audio.volume
+        const fadeStartTime = Date.now()
+        fadeInterval = setInterval(() => {
+          const elapsed = (Date.now() - fadeStartTime) / 1000
+          if (elapsed >= fadeOutDuration) {
+            cleanup()
+          } else {
+            const fadeProgress = elapsed / fadeOutDuration
+            audio.volume = startVolume * (1 - fadeProgress)
+          }
+        }, 50)
+      }, halfDuration * 1000)
+    }).catch(() => {
+      cleanup()
+    })
   })
 
   // Cleanup on audio end as failsafe
   audio.addEventListener('ended', cleanup)
   audio.addEventListener('error', cleanup)
+
+  // Trigger load
+  audio.load()
 }
 
 // Play singing bowl MP3 with fade out
