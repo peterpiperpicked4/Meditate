@@ -55,7 +55,7 @@ function logError(context: string, error: unknown) {
 
 export default function BreathePage() {
   // Music context for Full Experience mode
-  const { play: playMusic, setVolume: setMusicVolume } = useMusic()
+  const { play: playMusic, pause: pauseMusic, setVolume: setMusicVolume } = useMusic()
 
   // State
   const [pattern, setPattern] = React.useState<BreathPattern>(DEFAULT_PATTERN)
@@ -164,8 +164,9 @@ export default function BreathePage() {
     setCompletedBreaths(breathCount)
     setSessionComplete(true)
 
-    // Stop ambient sound when session ends
+    // Stop all audio when session ends
     stopAmbientSound()
+    pauseMusic()
 
     // Record to breathing streaks
     const updatedStreaks = recordBreathingSession(durationMinutes)
@@ -186,7 +187,7 @@ export default function BreathePage() {
     } catch (e) {
       logError('Failed to save session', e)
     }
-  }, [durationMinutes, pattern])
+  }, [durationMinutes, pattern, pauseMusic])
 
   // Apply a purpose preset
   const applyPreset = React.useCallback((preset: PurposePreset) => {
@@ -284,8 +285,21 @@ export default function BreathePage() {
   const startFullExperience = React.useCallback(() => {
     const config = FULL_EXPERIENCE_CONFIG
 
-    // Apply breathing pattern
-    const targetPattern = BREATH_PRESETS.find(p => p.id === config.patternId) || DEFAULT_PATTERN
+    // Apply breathing pattern - use explicit pattern to ensure correct order
+    // 4-7-8: Inhale 4s → Hold 7s → Exhale 8s (hold AFTER inhale, not after exhale)
+    const targetPattern: BreathPattern = {
+      id: '4-7-8',
+      name: '4-7-8 Relaxing',
+      description: 'Dr. Weil\'s calming breath',
+      inhale: 4,
+      hold1: 7,   // Hold AFTER inhale
+      exhale: 8,
+      hold2: 0,   // No hold after exhale
+    }
+
+    console.log('🎯 FULL EXPERIENCE: Setting pattern with hold1:', targetPattern.hold1, 'hold2:', targetPattern.hold2)
+    console.log('🎯 Expected phases: inhale → hold1 → exhale (because hold1=7, hold2=0)')
+
     setPattern(targetPattern)
     setDurationMinutes(config.duration)
 
@@ -325,19 +339,21 @@ export default function BreathePage() {
   // Effect to start timer after Full Experience state updates are applied
   React.useEffect(() => {
     if (pendingFullExperience && !timer.isRunning) {
+      console.log('🚀 Starting timer with current pattern:', pattern.name, 'hold1:', pattern.hold1, 'hold2:', pattern.hold2)
       setPendingFullExperience(false)
       timer.start()
     }
-  }, [pendingFullExperience, timer])
+  }, [pendingFullExperience, timer, pattern])
 
   const handleStop = React.useCallback(() => {
     timer.stop()
     stopAmbientSound()
+    pauseMusic()
     setShowSettings(true)
     setShowPresets(true)
     setSelectedPreset(null)
     setRampConfig(null)
-  }, [timer])
+  }, [timer, pauseMusic])
 
   // Fullscreen handling
   const toggleFullscreen = React.useCallback(async () => {

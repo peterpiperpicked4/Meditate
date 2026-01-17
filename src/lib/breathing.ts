@@ -448,6 +448,15 @@ export function getActivePhases(pattern: BreathPattern): { phase: BreathPhase; d
     phases.push({ phase: 'hold2', duration: pattern.hold2 })
   }
 
+  console.log('🔄 getActivePhases:', {
+    patternName: pattern.name,
+    inhale: pattern.inhale,
+    hold1: pattern.hold1,
+    exhale: pattern.exhale,
+    hold2: pattern.hold2,
+    resultPhases: phases.map(p => `${p.phase}:${p.duration}s`).join(' → ')
+  })
+
   return phases
 }
 
@@ -781,6 +790,32 @@ function playClassic(frequency: number, volume: number, duration: number = 0.2):
   oscillator.stop(now + duration)
 }
 
+// Play singing bowl MP3 with fade out
+function playSingingBowlMP3(volume: number = 0.3, fadeOutDuration: number = 3): void {
+  const audio = new Audio('/music/SingingBowl.mp3')
+  audio.volume = volume * 0.3 // 30% of the passed volume
+
+  audio.play().then(() => {
+    // Fade out after specified duration
+    const startVolume = audio.volume
+    const fadeStartTime = Date.now()
+    const fadeInterval = setInterval(() => {
+      const elapsed = (Date.now() - fadeStartTime) / 1000
+      if (elapsed >= fadeOutDuration) {
+        audio.volume = 0
+        audio.pause()
+        clearInterval(fadeInterval)
+      } else {
+        // Linear fade out over fadeOutDuration seconds
+        const fadeProgress = elapsed / fadeOutDuration
+        audio.volume = startVolume * (1 - fadeProgress)
+      }
+    }, 50)
+  }).catch(() => {
+    // Fallback to synthesized if MP3 fails
+  })
+}
+
 // Main function to play phase sounds with selected profile
 export function playPhaseSound(
   phase: BreathPhase,
@@ -809,12 +844,11 @@ export function playPhaseSound(
       case 'singing-bowl':
         if (phase === 'countdown') {
           playMinimal(440, volume)
-        } else if (phase === 'inhale') {
-          playSingingBowl(396, volume, 1.5)
-        } else if (phase === 'exhale') {
-          playSingingBowl(264, volume, 2)
+        } else if (phase === 'inhale' || phase === 'exhale') {
+          playSingingBowlMP3(volume, 3) // 30% volume, 3 second fade out
         } else {
-          playSingingBowl(330, volume * 0.5, 1)
+          // Softer for hold phases
+          playSingingBowlMP3(volume * 0.5, 2)
         }
         break
 

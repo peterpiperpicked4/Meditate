@@ -121,8 +121,11 @@ export function useBreathingTimer({
     const deltaTime = (timestamp - lastTimeRef.current) / 1000
     lastTimeRef.current = timestamp
 
+    let shouldContinue = true
+
     setState(prevState => {
       if (!prevState.isRunning || prevState.isPaused) {
+        shouldContinue = false
         return prevState
       }
 
@@ -131,35 +134,37 @@ export function useBreathingTimer({
         const newCountdown = prevState.phaseTimeRemaining - deltaTime
 
         if (newCountdown <= 0) {
-          // Start first breathing phase
-          phaseIndexRef.current = 0
+          // Start first breathing phase - ALWAYS inhale
           elapsedTimeRef.current = 0 // Reset elapsed time for ramp
 
           // Get initial pattern (may be ramped start pattern)
           const currentPattern = rampConfig?.enabled
             ? getRampedPattern(rampConfig, 0)
             : pattern
-          phasesRef.current = getActivePhases(currentPattern)
-          const phases = phasesRef.current
-          const firstPhase = phases[0]
 
-          // Debug: log phases after countdown
-          console.log('🫁 Countdown complete, starting phases:', phases.map(p => `${p.phase}:${p.duration}s`))
+          // Debug: log pattern after countdown
+          console.log('🫁 Countdown complete, starting INHALE with pattern:', {
+            name: currentPattern.name,
+            inhale: currentPattern.inhale,
+            hold1: currentPattern.hold1,
+            exhale: currentPattern.exhale,
+            hold2: currentPattern.hold2,
+          })
 
           if (soundEnabled) {
-            playPhaseSound(firstPhase.phase, soundVolume, soundProfile, muteHoldPhases)
+            playPhaseSound('inhale', soundVolume, soundProfile, muteHoldPhases)
           }
           if (hapticEnabled) {
             vibrate(50)
           }
 
-          onPhaseChange?.(firstPhase.phase)
+          onPhaseChange?.('inhale')
 
           return {
             ...prevState,
-            phase: firstPhase.phase,
-            phaseDuration: firstPhase.duration,
-            phaseTimeRemaining: firstPhase.duration,
+            phase: 'inhale',
+            phaseDuration: currentPattern.inhale,
+            phaseTimeRemaining: currentPattern.inhale,
             progress: 0,
             currentPattern,
             rampProgress: 0,
@@ -210,6 +215,8 @@ export function useBreathingTimer({
         // Include final breath if we end during exhale
         const finalBreathCount = prevState.phase === 'exhale' ? newBreathCount + 1 : newBreathCount
         onComplete?.(finalBreathCount)
+        // Stop the tick loop since session is complete
+        shouldContinue = false
         return {
           ...prevState,
           phase: 'idle',
@@ -224,28 +231,69 @@ export function useBreathingTimer({
 
       // Check if phase complete
       if (newPhaseTime <= 0) {
-        phaseIndexRef.current++
-        const phases = phasesRef.current
-        const nextPhaseIndex = phaseIndexRef.current % phases.length
-        const nextPhase = phases[nextPhaseIndex]
+        // EXPLICIT phase transition logic - no array indexing!
+        // This ensures correct order: inhale → hold1 → exhale → hold2 → inhale
+        let nextPhaseType: BreathPhase
+        let nextPhaseDur: number
 
-        // Count breath on exhale completion
-        if (prevState.phase === 'exhale') {
-          newBreathCount++
+        switch (prevState.phase) {
+          case 'inhale':
+            // After inhale: go to hold1 if it exists, otherwise exhale
+            if (newCurrentPattern.hold1 > 0) {
+              nextPhaseType = 'hold1'
+              nextPhaseDur = newCurrentPattern.hold1
+            } else {
+              nextPhaseType = 'exhale'
+              nextPhaseDur = newCurrentPattern.exhale
+            }
+            break
+          case 'hold1':
+            // After hold1: always go to exhale
+            nextPhaseType = 'exhale'
+            nextPhaseDur = newCurrentPattern.exhale
+            break
+          case 'exhale':
+            // After exhale: go to hold2 if it exists, otherwise inhale (new breath)
+            newBreathCount++
+            if (newCurrentPattern.hold2 > 0) {
+              nextPhaseType = 'hold2'
+              nextPhaseDur = newCurrentPattern.hold2
+            } else {
+              nextPhaseType = 'inhale'
+              nextPhaseDur = newCurrentPattern.inhale
+            }
+            break
+          case 'hold2':
+            // After hold2: always go to inhale (new breath)
+            nextPhaseType = 'inhale'
+            nextPhaseDur = newCurrentPattern.inhale
+            break
+          default:
+            nextPhaseType = 'inhale'
+            nextPhaseDur = newCurrentPattern.inhale
         }
 
-        newPhase = nextPhase.phase
-        newPhaseDuration = nextPhase.duration
-        newPhaseTime = nextPhase.duration
+        // DEBUG: Log phase transition
+        console.log('🔄 PHASE TRANSITION:', {
+          from: prevState.phase,
+          to: nextPhaseType,
+          pattern: newCurrentPattern.name,
+          hold1: newCurrentPattern.hold1,
+          hold2: newCurrentPattern.hold2,
+        })
+
+        newPhase = nextPhaseType
+        newPhaseDuration = nextPhaseDur
+        newPhaseTime = nextPhaseDur
 
         if (soundEnabled) {
-          playPhaseSound(nextPhase.phase, soundVolume, soundProfile, muteHoldPhases)
+          playPhaseSound(nextPhaseType, soundVolume, soundProfile, muteHoldPhases)
         }
         if (hapticEnabled) {
-          vibrate(nextPhase.phase === 'inhale' || nextPhase.phase === 'exhale' ? 50 : 30)
+          vibrate(nextPhaseType === 'inhale' || nextPhaseType === 'exhale' ? 50 : 30)
         }
 
-        onPhaseChange?.(nextPhase.phase)
+        onPhaseChange?.(nextPhaseType)
       }
 
       const progress = 1 - (newPhaseTime / newPhaseDuration)
@@ -263,10 +311,19 @@ export function useBreathingTimer({
       }
     })
 
-    animationRef.current = requestAnimationFrame(tick)
+    // Only schedule next tick if timer should continue
+    if (shouldContinue) {
+      animationRef.current = requestAnimationFrame(tick)
+    }
   }, [soundEnabled, soundVolume, soundProfile, hapticEnabled, muteHoldPhases, rampConfig, pattern, onComplete, onPhaseChange])
 
   const start = useCallback(() => {
+    // Cancel any existing animation frame to prevent multiple ticks
+    if (animationRef.current) {
+      cancelAnimationFrame(animationRef.current)
+      animationRef.current = null
+    }
+
     // Reset state
     phaseIndexRef.current = 0
     countdownRef.current = 3
@@ -278,6 +335,10 @@ export function useBreathingTimer({
       ? rampConfig.startPattern
       : pattern
 
+    // CRITICAL: Explicitly set phasesRef to ensure correct phase order
+    // This prevents stale phases from previous sessions
+    phasesRef.current = getActivePhases(initialPattern)
+
     // Debug: log the pattern being used
     console.log('🫁 Timer starting with pattern:', {
       name: initialPattern.name,
@@ -285,7 +346,7 @@ export function useBreathingTimer({
       hold1: initialPattern.hold1,
       exhale: initialPattern.exhale,
       hold2: initialPattern.hold2,
-      phases: getActivePhases(initialPattern).map(p => `${p.phase}:${p.duration}s`)
+      phases: phasesRef.current.map(p => `${p.phase}:${p.duration}s`)
     })
 
     setState(s => ({
@@ -306,10 +367,19 @@ export function useBreathingTimer({
   }, [tick, rampConfig, pattern])
 
   const pause = useCallback(() => {
+    // Cancel animation frame when pausing to stop the tick loop
+    if (animationRef.current) {
+      cancelAnimationFrame(animationRef.current)
+      animationRef.current = null
+    }
     setState(s => ({ ...s, isPaused: true }))
   }, [])
 
   const resume = useCallback(() => {
+    // Cancel any existing frame before resuming
+    if (animationRef.current) {
+      cancelAnimationFrame(animationRef.current)
+    }
     lastTimeRef.current = 0
     setState(s => ({ ...s, isPaused: false }))
     animationRef.current = requestAnimationFrame(tick)
