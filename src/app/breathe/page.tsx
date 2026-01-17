@@ -2,7 +2,8 @@
 
 import * as React from 'react'
 import Link from 'next/link'
-import { Play, Pause, Square, Timer, ArrowLeft, Settings, Check, Maximize, Minimize, Moon, Heart, Target, Zap, Wind, Flame, TrendingUp, Sparkles, BookOpen } from 'lucide-react'
+import { useSearchParams } from 'next/navigation'
+import { Play, Pause, Square, Timer, ArrowLeft, Settings, Check, Maximize, Minimize, Moon, Heart, Target, Zap, Wind, Flame, TrendingUp, Sparkles, BookOpen, Sunrise, Coffee, Leaf } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { BreathingVisual } from '@/components/breathe/BreathingVisual'
 import { BreathingControls } from '@/components/breathe/BreathingControls'
@@ -18,6 +19,8 @@ import {
   PurposePreset,
   PURPOSE_PRESETS,
   FULL_EXPERIENCE_CONFIG,
+  SignatureExperience,
+  SIGNATURE_EXPERIENCES,
   getBreathingStreaks,
   recordBreathingSession,
   startAmbientSound,
@@ -46,6 +49,14 @@ const PresetIcons: Record<string, React.ComponentType<{ className?: string }>> =
   Wind,
 }
 
+// Icon mapping for signature experiences
+const ExperienceIcons: Record<string, React.ComponentType<{ className?: string }>> = {
+  Sunrise,
+  Moon,
+  Coffee,
+  Leaf,
+}
+
 // Helper to safely log errors in development
 function logError(context: string, error: unknown) {
   if (process.env.NODE_ENV === 'development') {
@@ -54,12 +65,17 @@ function logError(context: string, error: unknown) {
 }
 
 export default function BreathePage() {
+  // URL params for quick-start links (e.g., ?duration=3)
+  const searchParams = useSearchParams()
+  const urlDuration = searchParams.get('duration')
+  const initialDuration = urlDuration ? parseInt(urlDuration, 10) : DEFAULT_BREATHING_SETTINGS.defaultDuration
+
   // Music context for Full Experience mode
   const { play: playMusic, pause: pauseMusic, setVolume: setMusicVolume } = useMusic()
 
   // State
   const [pattern, setPattern] = React.useState<BreathPattern>(DEFAULT_PATTERN)
-  const [durationMinutes, setDurationMinutes] = React.useState(DEFAULT_BREATHING_SETTINGS.defaultDuration)
+  const [durationMinutes, setDurationMinutes] = React.useState(initialDuration)
   const [soundEnabled, setSoundEnabled] = React.useState(DEFAULT_BREATHING_SETTINGS.soundEnabled)
   const [soundProfile, setSoundProfile] = React.useState<SoundProfile>('singing-bowl')
   const [soundVolume, setSoundVolume] = React.useState(DEFAULT_BREATHING_SETTINGS.soundVolume)
@@ -328,6 +344,47 @@ export default function BreathePage() {
     }
 
     // Hide UI
+    setSessionComplete(false)
+    setShowSettings(false)
+    setShowPresets(false)
+
+    // Trigger start on next render after state updates
+    setPendingFullExperience(true)
+  }, [playMusic, setMusicVolume])
+
+  // Start a Signature Experience
+  const startSignatureExperience = React.useCallback((experience: SignatureExperience) => {
+    // Apply breathing pattern
+    setPattern(experience.pattern)
+    setDurationMinutes(experience.duration)
+
+    // Apply sound settings
+    setSoundEnabled(true)
+    setSoundProfile(experience.soundProfile)
+    setSoundVolume(0.5)
+
+    // Apply ambient settings
+    setAmbientSound(experience.ambientSound)
+    setAmbientVolume(0.15)
+
+    // Apply haptic setting
+    setHapticEnabled(true)
+
+    // Clear any preset/ramp settings
+    setSelectedPreset(null)
+    setRampConfig(null)
+    setRampEnabled(false)
+
+    // Start background music if configured
+    if (experience.musicTrackId) {
+      const track = MUSIC_TRACKS.find(t => t.id === experience.musicTrackId)
+      if (track) {
+        setMusicVolume(0.4)
+        playMusic(track)
+      }
+    }
+
+    // Hide UI and start
     setSessionComplete(false)
     setShowSettings(false)
     setShowPresets(false)
@@ -636,6 +693,49 @@ export default function BreathePage() {
                     </div>
                   </div>
                 </button>
+              </div>
+            )}
+
+            {/* Signature Experiences - curated named sessions */}
+            {!timer.isRunning && showPresets && (
+              <div className="mb-8">
+                <h2 className="text-sm font-medium text-muted-foreground mb-3 text-center">Signature Experiences</h2>
+                <div className="grid grid-cols-2 gap-3">
+                  {SIGNATURE_EXPERIENCES.map((exp) => {
+                    const IconComponent = ExperienceIcons[exp.icon] || Wind
+                    return (
+                      <button
+                        key={exp.id}
+                        onClick={() => startSignatureExperience(exp)}
+                        aria-label={`${exp.name}: ${exp.description}. ${exp.duration} minute session.`}
+                        className={cn(
+                          "relative overflow-hidden p-4 rounded-xl border transition-all text-left",
+                          "border-border/50 hover:border-primary/50",
+                          "focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2",
+                          "group"
+                        )}
+                      >
+                        {/* Gradient background */}
+                        <div className={cn(
+                          "absolute inset-0 bg-gradient-to-br opacity-50 group-hover:opacity-70 transition-opacity",
+                          exp.gradient
+                        )} />
+                        <div className="relative">
+                          <div className="flex items-center gap-2 mb-1">
+                            <IconComponent className="h-4 w-4 text-primary" aria-hidden="true" />
+                            <span className="text-xs text-muted-foreground">{exp.tagline}</span>
+                          </div>
+                          <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
+                            {exp.name}
+                          </h3>
+                          <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                            {exp.description}
+                          </p>
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
               </div>
             )}
 

@@ -34,8 +34,8 @@ export default function HomePage() {
               No mysticism required.
             </p>
 
-            {/* Single CTA */}
-            <div className="mt-10 animate-fade-in delay-3">
+            {/* CTAs */}
+            <div className="mt-10 animate-fade-in delay-3 flex flex-col sm:flex-row items-center justify-center gap-4">
               <Button
                 size="lg"
                 className="group bg-primary hover:bg-primary/90 text-primary-foreground px-10 py-6 text-lg btn-press"
@@ -46,7 +46,21 @@ export default function HomePage() {
                   <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
                 </Link>
               </Button>
+              <Button
+                size="lg"
+                variant="outline"
+                className="group px-8 py-6 text-lg border-primary/30 hover:border-primary/60 hover:bg-primary/5"
+                asChild
+              >
+                <Link href="/breathe?duration=3">
+                  <Clock className="mr-2 h-5 w-5 text-primary" />
+                  Try 3 Minutes Now
+                </Link>
+              </Button>
             </div>
+            <p className="mt-4 text-sm text-muted-foreground animate-fade-in delay-4">
+              No signup. No reading. Just breathe.
+            </p>
           </div>
         </div>
       </section>

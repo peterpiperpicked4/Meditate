@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { Download, Trash2, Flame, Clock, Calendar, TrendingUp, ArrowUpRight, FileDown } from 'lucide-react'
+import { Download, Trash2, Flame, Clock, Calendar, TrendingUp, ArrowUpRight, FileDown, Award, Star, Sunrise, Moon, Zap, Heart, Mountain, Trophy } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -14,6 +14,116 @@ import {
 import { getSessions, deleteSession, getStats, exportData, exportSessionsCSV, importData, type Session, type ExportData } from '@/lib/storage'
 import { formatMinutes, formatDate } from '@/lib/utils'
 import { PracticeHeatmap } from './practice-heatmap'
+import { cn } from '@/lib/utils'
+
+// Achievement definitions - meaningful milestones that feel earned
+interface Achievement {
+  id: string
+  name: string
+  description: string
+  icon: React.ComponentType<{ className?: string }>
+  check: (stats: Stats, sessions: Session[]) => boolean
+  unlockText: string
+}
+
+interface Stats {
+  totalSessions: number
+  totalMinutes: number
+  currentStreak: number
+  longestStreak: number
+  thisWeekMinutes: number
+  thisMonthMinutes: number
+  averageSessionLength: number
+  favoriteTime: string | null
+  favoritetechnique: string | null
+}
+
+const ACHIEVEMENTS: Achievement[] = [
+  {
+    id: 'first-sit',
+    name: 'First Sit',
+    description: 'You showed up. That\'s the hardest part.',
+    icon: Star,
+    check: (stats) => stats.totalSessions >= 1,
+    unlockText: 'Complete your first session',
+  },
+  {
+    id: 'getting-started',
+    name: 'Getting Started',
+    description: 'Five sessions in. The habit is forming.',
+    icon: Zap,
+    check: (stats) => stats.totalSessions >= 5,
+    unlockText: 'Complete 5 sessions',
+  },
+  {
+    id: 'one-week',
+    name: 'One Week',
+    description: '7 days in a row. You\'re building something real.',
+    icon: Flame,
+    check: (stats) => stats.longestStreak >= 7,
+    unlockText: 'Achieve a 7-day streak',
+  },
+  {
+    id: 'centurion',
+    name: 'Centurion',
+    description: '100 minutes of stillness. Your mind thanks you.',
+    icon: Clock,
+    check: (stats) => stats.totalMinutes >= 100,
+    unlockText: 'Accumulate 100 minutes',
+  },
+  {
+    id: 'dedicated',
+    name: 'Dedicated',
+    description: '10 hours of practice. This is dedication.',
+    icon: Heart,
+    check: (stats) => stats.totalMinutes >= 600,
+    unlockText: 'Accumulate 10 hours',
+  },
+  {
+    id: 'long-sit',
+    name: 'The Long Sit',
+    description: 'A 20+ minute session. Deep practice unlocked.',
+    icon: Mountain,
+    check: (_, sessions) => sessions.some(s => s.durationSec >= 1200),
+    unlockText: 'Complete a 20+ minute session',
+  },
+  {
+    id: 'monthly-streak',
+    name: 'The Daily Practice',
+    description: '30 days straight. You\'re not trying anymore—you\'re practicing.',
+    icon: Trophy,
+    check: (stats) => stats.longestStreak >= 30,
+    unlockText: 'Achieve a 30-day streak',
+  },
+  {
+    id: 'early-bird',
+    name: 'Early Bird',
+    description: 'Five morning sessions before 9am.',
+    icon: Sunrise,
+    check: (_, sessions) => {
+      const mornings = sessions.filter(s => {
+        const hour = new Date(s.startTime).getHours()
+        return hour >= 5 && hour < 9
+      })
+      return mornings.length >= 5
+    },
+    unlockText: 'Complete 5 sessions before 9am',
+  },
+  {
+    id: 'night-owl',
+    name: 'Night Owl',
+    description: 'Five evening sessions after 8pm.',
+    icon: Moon,
+    check: (_, sessions) => {
+      const evenings = sessions.filter(s => {
+        const hour = new Date(s.startTime).getHours()
+        return hour >= 20 || hour < 5
+      })
+      return evenings.length >= 5
+    },
+    unlockText: 'Complete 5 sessions after 8pm',
+  },
+]
 
 export function LogTab() {
   const [sessions, setSessions] = React.useState<Session[]>([])
@@ -179,6 +289,63 @@ export function LogTab() {
 
       {/* Practice Heatmap */}
       <PracticeHeatmap sessions={sessions} />
+
+      {/* Achievements */}
+      <section aria-labelledby="achievements-heading" className="card-contemplative rounded-xl p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <Award className="h-5 w-5 text-primary" />
+          <h3 id="achievements-heading" className="font-display text-base">Milestones</h3>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {ACHIEVEMENTS.map((achievement) => {
+            const isUnlocked = achievement.check(stats, sessions)
+            const IconComponent = achievement.icon
+            return (
+              <div
+                key={achievement.id}
+                className={cn(
+                  "relative rounded-lg border p-4 transition-all",
+                  isUnlocked
+                    ? "border-primary/30 bg-primary/5"
+                    : "border-border/30 bg-muted/20 opacity-60"
+                )}
+              >
+                <div className="flex items-start gap-3">
+                  <div className={cn(
+                    "flex h-10 w-10 items-center justify-center rounded-lg shrink-0",
+                    isUnlocked ? "bg-primary/20" : "bg-muted/50"
+                  )}>
+                    <IconComponent className={cn(
+                      "h-5 w-5",
+                      isUnlocked ? "text-primary" : "text-muted-foreground"
+                    )} aria-hidden="true" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className={cn(
+                      "font-medium text-sm",
+                      isUnlocked ? "text-foreground" : "text-muted-foreground"
+                    )}>
+                      {achievement.name}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {isUnlocked ? achievement.description : achievement.unlockText}
+                    </p>
+                  </div>
+                </div>
+                {isUnlocked && (
+                  <div className="absolute top-2 right-2">
+                    <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-primary text-primary-foreground">
+                      <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    </span>
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      </section>
 
       {/* Export/Import */}
       <div className="card-contemplative rounded-xl p-5">

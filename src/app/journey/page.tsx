@@ -20,8 +20,17 @@ function getRelativeTime(daysAgo: number): string {
   return `${Math.floor(daysAgo / 30)} months ago`
 }
 
-// Sample blog posts with relative timing
+// Journey posts - real entries from practice
 const posts = [
+  {
+    slug: 'jan-15-the-streak-continues',
+    title: 'The Streak Continues',
+    date: 'January 15, 2025',
+    daysAgo: 1,
+    excerpt: 'The 7-year-old was pounding down a door this morning early so we didn\'t get great sleep or get out the door to the river like usual.',
+    content: 'The 7-year-old was pounding down a door this morning early so we didn\'t get great sleep or get out the door to the river like usual. We were only able to squeeze in a nine minute meditation—4-7-8 breathing—right before my 8:30 meeting.\n\nBut we did it! We got it in.\n\nSometimes that\'s all you can do and you take what you can get. The streak continues!',
+    tags: ['consistency', 'real-life', 'morning-practice'],
+  },
   {
     slug: 'week-20-finding-the-edge',
     title: 'Week 20: Finding the Edge',
@@ -97,17 +106,25 @@ export default function JourneyPage() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-muted-foreground">{post.excerpt}</p>
-                  <div className="mt-3 flex flex-wrap gap-2">
+                  {'content' in post && post.content ? (
+                    <div className="text-sm text-muted-foreground whitespace-pre-line">
+                      {post.content}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">{post.excerpt}</p>
+                  )}
+                  <div className="mt-4 flex flex-wrap gap-2">
                     {post.tags.map((tag) => (
                       <Badge key={tag} variant="secondary" className="text-xs">
                         {tag}
                       </Badge>
                     ))}
                   </div>
-                  <p className="mt-3 text-xs text-muted-foreground italic">
-                    Full posts coming soon...
-                  </p>
+                  {!('content' in post) && (
+                    <p className="mt-3 text-xs text-muted-foreground italic">
+                      Full posts coming soon...
+                    </p>
+                  )}
                 </CardContent>
               </Card>
             ))}

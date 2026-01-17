@@ -107,6 +107,108 @@ export const FULL_EXPERIENCE_CONFIG: FullExperienceConfig = {
   hapticEnabled: true,
 }
 
+// ===== SIGNATURE EXPERIENCES =====
+// Named, curated sessions with distinct vibes - shareable and memorable
+
+export interface SignatureExperience {
+  id: string
+  name: string
+  tagline: string
+  description: string
+  icon: string
+  duration: number  // minutes
+  pattern: BreathPattern
+  ambientSound: AmbientSound | null
+  soundProfile: SoundProfile
+  musicTrackId?: string
+  gradient: string  // Tailwind gradient classes for visual identity
+}
+
+export const SIGNATURE_EXPERIENCES: SignatureExperience[] = [
+  {
+    id: 'morning-reset',
+    name: 'The Morning Reset',
+    tagline: '5 min · Energize',
+    description: 'Wake up your body and mind. Start the day centered.',
+    icon: 'Sunrise',
+    duration: 5,
+    pattern: {
+      id: 'energizing',
+      name: 'Energizing Breath',
+      description: 'Quick, invigorating pace',
+      inhale: 3,
+      hold1: 1,
+      exhale: 3,
+      hold2: 0,
+    },
+    ambientSound: 'forest',
+    soundProfile: 'soft-chime',
+    gradient: 'from-amber-500/20 via-orange-500/10 to-yellow-500/5',
+  },
+  {
+    id: 'wind-down',
+    name: 'The Wind Down',
+    tagline: '10 min · Sleep',
+    description: 'Slow your nervous system. Prepare for restful sleep.',
+    icon: 'Moon',
+    duration: 10,
+    pattern: {
+      id: '4-7-8',
+      name: '4-7-8 Relaxing',
+      description: 'Dr. Weil\'s calming breath',
+      inhale: 4,
+      hold1: 7,
+      exhale: 8,
+      hold2: 0,
+    },
+    ambientSound: 'rain',
+    soundProfile: 'warm-pad',
+    musicTrackId: 'toward-stillness',
+    gradient: 'from-indigo-500/20 via-purple-500/10 to-blue-500/5',
+  },
+  {
+    id: 'midday-pause',
+    name: 'The Midday Pause',
+    tagline: '3 min · Reset',
+    description: 'A quick reset between meetings. Clear the mental cache.',
+    icon: 'Coffee',
+    duration: 3,
+    pattern: {
+      id: 'box',
+      name: 'Box Breathing',
+      description: 'Navy SEAL technique',
+      inhale: 4,
+      hold1: 4,
+      exhale: 4,
+      hold2: 4,
+    },
+    ambientSound: null,
+    soundProfile: 'minimal',
+    gradient: 'from-sky-500/20 via-cyan-500/10 to-teal-500/5',
+  },
+  {
+    id: 'sunday-sit',
+    name: 'The Sunday Sit',
+    tagline: '20 min · Deep',
+    description: 'Your weekly deeper practice. Settle in. Go further.',
+    icon: 'Leaf',
+    duration: 20,
+    pattern: {
+      id: 'natural',
+      name: 'Natural Breath',
+      description: 'Slow, natural rhythm',
+      inhale: 5,
+      hold1: 2,
+      exhale: 6,
+      hold2: 2,
+    },
+    ambientSound: 'forest',
+    soundProfile: 'singing-bowl',
+    musicTrackId: 'space-between',
+    gradient: 'from-emerald-500/20 via-green-500/10 to-lime-500/5',
+  },
+]
+
 export const PURPOSE_PRESETS: PurposePreset[] = [
   {
     id: 'sleep',
