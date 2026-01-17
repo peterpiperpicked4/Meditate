@@ -174,10 +174,9 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     }
 
     if (audioRef.current) {
-      if (!audioRef.current.src || audioRef.current.src !== trackToPlay.src) {
-        audioRef.current.src = trackToPlay.src
-        audioRef.current.load()
-      }
+      audioRef.current.src = trackToPlay.src
+      audioRef.current.load()
+
       audioRef.current.play().then(() => {
         setIsPlaying(true)
       }).catch(() => {

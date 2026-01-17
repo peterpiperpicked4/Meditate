@@ -55,7 +55,7 @@ function logError(context: string, error: unknown) {
 
 export default function BreathePage() {
   // Music context for Full Experience mode
-  const { play: playMusic, selectTrack, setVolume: setMusicVolume } = useMusic()
+  const { play: playMusic, setVolume: setMusicVolume } = useMusic()
 
   // State
   const [pattern, setPattern] = React.useState<BreathPattern>(DEFAULT_PATTERN)
@@ -86,6 +86,9 @@ export default function BreathePage() {
 
   // Ref for settings panel focus trap
   const settingsPanelRef = React.useRef<HTMLDivElement>(null)
+
+  // State to track pending Full Experience start (triggers re-render to start timer)
+  const [pendingFullExperience, setPendingFullExperience] = React.useState(false)
 
   // Load saved settings from localStorage
   React.useEffect(() => {
@@ -211,51 +214,6 @@ export default function BreathePage() {
     }
   }, [])
 
-  // Start Full Experience mode - one-click immersive meditation
-  const startFullExperience = React.useCallback(() => {
-    const config = FULL_EXPERIENCE_CONFIG
-
-    // Apply breathing pattern
-    const targetPattern = BREATH_PRESETS.find(p => p.id === config.patternId) || DEFAULT_PATTERN
-    setPattern(targetPattern)
-    setDurationMinutes(config.duration)
-
-    // Apply sound settings
-    setSoundEnabled(config.soundEnabled)
-    setSoundProfile(config.soundProfile)
-    setSoundVolume(config.soundVolume)
-
-    // Apply ambient settings
-    setAmbientSound(config.ambientSound)
-    setAmbientVolume(config.ambientVolume)
-
-    // Apply haptic setting
-    setHapticEnabled(config.hapticEnabled)
-
-    // Clear any preset/ramp settings
-    setSelectedPreset(null)
-    setRampConfig(null)
-    setRampEnabled(false)
-
-    // Start background music
-    const track = MUSIC_TRACKS.find(t => t.id === config.musicTrackId)
-    if (track) {
-      selectTrack(track)
-      setMusicVolume(config.musicVolume)
-      playMusic(track)
-    }
-
-    // Hide UI and start session
-    setSessionComplete(false)
-    setShowSettings(false)
-    setShowPresets(false)
-
-    // Small delay to allow state to update before starting timer
-    setTimeout(() => {
-      timer.start()
-    }, 50)
-  }, [playMusic, selectTrack, setMusicVolume, timer])
-
   // Build ramp config from state if enabled (and no preset ramp)
   const effectiveRampConfig = React.useMemo((): RampConfig | null => {
     // If there's a preset ramp config, use it
@@ -321,6 +279,56 @@ export default function BreathePage() {
     setShowPresets(false)
     timer.start()
   }, [timer])
+
+  // Start Full Experience mode - one-click immersive meditation
+  const startFullExperience = React.useCallback(() => {
+    const config = FULL_EXPERIENCE_CONFIG
+
+    // Apply breathing pattern
+    const targetPattern = BREATH_PRESETS.find(p => p.id === config.patternId) || DEFAULT_PATTERN
+    setPattern(targetPattern)
+    setDurationMinutes(config.duration)
+
+    // Apply sound settings
+    setSoundEnabled(config.soundEnabled)
+    setSoundProfile(config.soundProfile)
+    setSoundVolume(config.soundVolume)
+
+    // Apply ambient settings
+    setAmbientSound(config.ambientSound)
+    setAmbientVolume(config.ambientVolume)
+
+    // Apply haptic setting
+    setHapticEnabled(config.hapticEnabled)
+
+    // Clear any preset/ramp settings
+    setSelectedPreset(null)
+    setRampConfig(null)
+    setRampEnabled(false)
+
+    // Start background music
+    const track = MUSIC_TRACKS.find(t => t.id === config.musicTrackId)
+    if (track) {
+      setMusicVolume(config.musicVolume)
+      playMusic(track)
+    }
+
+    // Hide UI
+    setSessionComplete(false)
+    setShowSettings(false)
+    setShowPresets(false)
+
+    // Trigger start on next render after state updates
+    setPendingFullExperience(true)
+  }, [playMusic, setMusicVolume])
+
+  // Effect to start timer after Full Experience state updates are applied
+  React.useEffect(() => {
+    if (pendingFullExperience && !timer.isRunning) {
+      setPendingFullExperience(false)
+      timer.start()
+    }
+  }, [pendingFullExperience, timer])
 
   const handleStop = React.useCallback(() => {
     timer.stop()
