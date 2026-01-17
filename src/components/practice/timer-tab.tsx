@@ -613,29 +613,42 @@ export function TimerTab() {
       )}
 
       {timerState === 'idle' && (
-        <div className="rounded-xl border border-border/30 bg-card/20 p-5">
-          <h4 className="font-display text-sm text-primary/80 uppercase tracking-wider mb-3">
-            Before you begin
-          </h4>
-          <ul className="space-y-2 text-sm text-muted-foreground">
-            <li className="flex items-start gap-2">
-              <span className="text-primary/50 mt-0.5" aria-hidden="true">•</span>
-              Find a comfortable, upright posture
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-primary/50 mt-0.5" aria-hidden="true">•</span>
-              Let your eyes close or soften your gaze
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-primary/50 mt-0.5" aria-hidden="true">•</span>
-              Take a few deep breaths to settle
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-primary/50 mt-0.5" aria-hidden="true">•</span>
-              When ready, press play or <kbd className="px-1.5 py-0.5 rounded bg-muted/50 border border-border/50 font-mono text-xs">Space</kbd>
-            </li>
-          </ul>
-        </div>
+        <>
+          {/* Prominent Start Button for mobile */}
+          <Button
+            size="lg"
+            onClick={handleStart}
+            className="w-full h-14 text-lg bg-primary hover:bg-primary/90 shadow-glow btn-press sm:hidden"
+            aria-label="Start meditation timer"
+          >
+            <Play className="mr-2 h-5 w-5" aria-hidden="true" />
+            Start Session
+          </Button>
+
+          <div className="rounded-xl border border-border/30 bg-card/20 p-5">
+            <h4 className="font-display text-sm text-primary/80 uppercase tracking-wider mb-3">
+              Before you begin
+            </h4>
+            <ul className="space-y-2 text-sm text-muted-foreground">
+              <li className="flex items-start gap-2">
+                <span className="text-primary/50 mt-0.5" aria-hidden="true">•</span>
+                Find a comfortable, upright posture
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-primary/50 mt-0.5" aria-hidden="true">•</span>
+                Let your eyes close or soften your gaze
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-primary/50 mt-0.5" aria-hidden="true">•</span>
+                Take a few deep breaths to settle
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-primary/50 mt-0.5" aria-hidden="true">•</span>
+                When ready, press play or <kbd className="px-1.5 py-0.5 rounded bg-muted/50 border border-border/50 font-mono text-xs">Space</kbd>
+              </li>
+            </ul>
+          </div>
+        </>
       )}
 
       {/* Keyboard shortcuts hint */}

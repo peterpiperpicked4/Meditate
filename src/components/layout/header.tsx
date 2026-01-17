@@ -12,6 +12,7 @@ const navigation = [
   { name: 'Practice', href: '/practice' },
   { name: 'Breathe', href: '/breathe' },
   { name: 'Techniques', href: '/techniques' },
+  { name: 'Journey', href: '/journey' },
 ]
 
 export function Header() {

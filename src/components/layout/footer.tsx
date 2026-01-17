@@ -78,6 +78,11 @@ export function Footer() {
                   </Link>
                 </li>
                 <li>
+                  <Link href="/journey" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                    Journey
+                  </Link>
+                </li>
+                <li>
                   <Link href="/disclaimer" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                     Disclaimer
                   </Link>

@@ -1,5 +1,6 @@
 import { Metadata } from 'next'
 import Link from 'next/link'
+import Image from 'next/image'
 import { ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
@@ -13,9 +14,60 @@ export default function AboutPage() {
   return (
     <div className="container mx-auto px-4 py-12">
       <div className="mx-auto max-w-2xl">
-        <h1 className="text-4xl font-bold tracking-tight">About This Project</h1>
+        {/* Personal Introduction */}
+        <div className="mb-16">
+          <div className="relative aspect-[16/9] w-full mb-8 rounded-xl overflow-hidden">
+            <Image
+              src="/images/awakened-journal.jpg"
+              alt="A worn leather journal with 'Awakened — and in progress' embossed on the cover, beside reading glasses and a ceramic mug"
+              fill
+              className="object-cover"
+              priority
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent" />
+          </div>
 
-        <div className="mt-8 space-y-6 text-muted-foreground">
+          <h1 className="text-4xl font-display font-bold tracking-tight mb-2">
+            Awakened
+          </h1>
+          <p className="text-xl text-primary font-display italic mb-6">
+            — and in progress
+          </p>
+
+          <div className="space-y-4 text-muted-foreground leading-relaxed">
+            <p>
+              Six months of meditation practice. Almost every day, rain or shine. Sometimes
+              in barely any light. Sometimes with our friendly ducks nearby—they mean the
+              world to us.
+            </p>
+
+            <p>
+              I like music. I like having background sounds going. I wanted to make something
+              that was easily accessible for everyone—the training wheels I needed to get started.
+            </p>
+
+            <p>
+              It&apos;s very meaningful to me to do the work to go inward. I&apos;ve been paying
+              too much attention for too long to the external world, to everything I was told
+              was important—and am now realizing truly is not.
+            </p>
+
+            <p className="text-foreground">
+              I hope this website brings you some form of peace.
+            </p>
+
+            <p className="text-sm text-muted-foreground/80 italic pt-2">
+              Much love and peace. Happy meditating.
+            </p>
+          </div>
+        </div>
+
+        {/* Divider */}
+        <div className="border-t border-border/50 my-12" />
+
+        <h2 className="text-3xl font-bold tracking-tight mb-8">About This Project</h2>
+
+        <div className="space-y-6 text-muted-foreground">
           <p>
             <strong className="text-foreground">Zero → Deep</strong> is a practical
             mindfulness training resource built by someone learning alongside you—not
@@ -24,7 +76,7 @@ export default function AboutPage() {
           </p>
 
           <p>
-            The creator has about 4-5 months of near-daily practice, sitting 10-15
+            About six months of near-daily practice, sitting 10-15
             minutes most mornings. That&apos;s not a lot by some standards, but it&apos;s
             enough to know what beginning feels like—and to want to help others start
             without the confusion and misinformation that often surrounds meditation.

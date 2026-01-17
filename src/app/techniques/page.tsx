@@ -178,7 +178,7 @@ export default function TechniquesPage() {
               href={`/techniques/${technique.slug}`}
               className="group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-lg"
             >
-              <Card className="h-full transition-all hover:shadow-md hover:border-primary/30 group-focus-visible:border-primary">
+              <Card className="h-full transition-all duration-200 hover:shadow-lg hover:shadow-primary/5 hover:border-primary/40 hover:-translate-y-1 group-focus-visible:border-primary cursor-pointer">
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">

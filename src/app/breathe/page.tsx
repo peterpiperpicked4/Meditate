@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import Link from 'next/link'
-import { Play, Pause, Square, Timer, ArrowLeft, Settings, Check, Maximize, Minimize, Moon, Heart, Target, Zap, Wind, Flame, TrendingUp, Sparkles } from 'lucide-react'
+import { Play, Pause, Square, Timer, ArrowLeft, Settings, Check, Maximize, Minimize, Moon, Heart, Target, Zap, Wind, Flame, TrendingUp, Sparkles, BookOpen } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { BreathingVisual } from '@/components/breathe/BreathingVisual'
 import { BreathingControls } from '@/components/breathe/BreathingControls'
@@ -551,6 +551,17 @@ export default function BreathePage() {
                 size="lg"
                 asChild
                 className="w-full"
+              >
+                <Link href="/practice?tab=journal">
+                  <BookOpen className="mr-2 h-4 w-4" aria-hidden="true" />
+                  Log to Journal
+                </Link>
+              </Button>
+              <Button
+                variant="ghost"
+                size="lg"
+                asChild
+                className="w-full text-muted-foreground"
               >
                 <Link href="/practice">
                   <Timer className="mr-2 h-4 w-4" aria-hidden="true" />
