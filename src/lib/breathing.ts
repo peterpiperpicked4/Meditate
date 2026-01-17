@@ -895,7 +895,7 @@ function playHumanVoice(phase: BreathPhase, volume: number): void {
     : '/music/voice-exhale.mp3'  // G2 tone
 
   const audio = new Audio(audioFile)
-  audio.volume = volume * 0.4 // 40% of passed volume for gentle blend
+  audio.volume = volume * 0.25 // 25% of passed volume for gentle blend
 
   let fadeInterval: ReturnType<typeof setInterval> | null = null
   let halfDurationTimeout: ReturnType<typeof setTimeout> | null = null
