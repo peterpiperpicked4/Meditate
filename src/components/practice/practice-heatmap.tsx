@@ -253,13 +253,13 @@ export function PracticeHeatmap({ sessions }: PracticeHeatmapProps) {
       >
         {/* Day labels */}
         <div className="flex flex-col gap-0.5 mr-1.5 text-xs text-muted-foreground shrink-0" role="presentation" aria-hidden="true">
-          <span className="h-3"></span>
-          <span className="h-3 leading-3 text-[10px]">Mon</span>
-          <span className="h-3"></span>
-          <span className="h-3 leading-3 text-[10px]">Wed</span>
-          <span className="h-3"></span>
-          <span className="h-3 leading-3 text-[10px]">Fri</span>
-          <span className="h-3"></span>
+          <span className="h-3.5 sm:h-3"></span>
+          <span className="h-3.5 sm:h-3 leading-3 text-[10px]">Mon</span>
+          <span className="h-3.5 sm:h-3"></span>
+          <span className="h-3.5 sm:h-3 leading-3 text-[10px]">Wed</span>
+          <span className="h-3.5 sm:h-3"></span>
+          <span className="h-3.5 sm:h-3 leading-3 text-[10px]">Fri</span>
+          <span className="h-3.5 sm:h-3"></span>
         </div>
 
         {/* Weeks */}
@@ -268,7 +268,7 @@ export function PracticeHeatmap({ sessions }: PracticeHeatmapProps) {
             {[0, 1, 2, 3, 4, 5, 6].map((dayIndex) => {
               const date = week.find(d => d.getDay() === dayIndex)
               if (!date || date > new Date()) {
-                return <div key={dayIndex} className="w-3 h-3" role="gridcell" aria-hidden="true" />
+                return <div key={dayIndex} className="w-3.5 h-3.5 sm:w-3 sm:h-3" role="gridcell" aria-hidden="true" />
               }
 
               const dateKey = formatDateKey(date)
@@ -296,11 +296,11 @@ export function PracticeHeatmap({ sessions }: PracticeHeatmapProps) {
                   aria-label={`${dateLabel}: ${activityLabel}`}
                   aria-selected={isFocused}
                   tabIndex={-1}
-                  className={`w-3 h-3 rounded-sm ${intensityColors[intensity]} ${
+                  className={`w-3.5 h-3.5 sm:w-3 sm:h-3 rounded-sm ${intensityColors[intensity]} ${
                     isToday ? 'ring-1 ring-primary ring-offset-1 ring-offset-background' : ''
                   } ${
                     isFocused ? 'ring-2 ring-foreground ring-offset-1 ring-offset-background' : ''
-                  } focus:outline-none focus-visible:ring-2 focus-visible:ring-foreground transition-transform hover:scale-125`}
+                  } focus:outline-none focus-visible:ring-2 focus-visible:ring-foreground transition-transform hover:scale-125 active:scale-110 touch-manipulation`}
                   onClick={() => {
                     setFocusedIndex(flatIndex)
                     setSelectedDate({ date, minutes })

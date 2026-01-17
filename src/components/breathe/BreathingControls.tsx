@@ -44,7 +44,7 @@ interface BreathingControlsProps {
   disabled?: boolean
 }
 
-export function BreathingControls({
+export const BreathingControls = React.memo(function BreathingControls({
   pattern,
   onPatternChange,
   duration,
@@ -545,4 +545,6 @@ export function BreathingControls({
       </div>
     </div>
   )
-}
+})
+
+BreathingControls.displayName = 'BreathingControls'

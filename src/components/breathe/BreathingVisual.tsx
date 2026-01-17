@@ -95,20 +95,19 @@ export const BreathingVisual = React.memo(function BreathingVisual({
           )}
         </svg>
 
-        {/* Breathing circle */}
+        {/* Breathing circle - uses transform for GPU-accelerated animation */}
         <div
           className={cn(
-            'relative rounded-full transition-all',
+            'relative rounded-full transition-transform will-change-transform',
             // Smooth transition for breathing, instant for idle
             phase === 'idle' ? 'duration-300' : 'duration-100',
             // Subtle pulse during holds
             isHolding && 'animate-pulse-subtle'
           )}
           style={{
-            width: `${scale * 100}%`,
-            height: `${scale * 100}%`,
-            maxWidth: '280px',
-            maxHeight: '280px',
+            width: '280px',
+            height: '280px',
+            transform: `scale(${scale})`,
           }}
         >
           {/* Gradient background */}

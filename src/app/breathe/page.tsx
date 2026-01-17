@@ -700,8 +700,8 @@ function BreathePageContent() {
             {/* Signature Experiences - curated named sessions */}
             {!timer.isRunning && showPresets && (
               <div className="mb-8">
-                <h2 className="text-sm font-medium text-muted-foreground mb-3 text-center">Signature Experiences</h2>
-                <div className="grid grid-cols-2 gap-3">
+                <h2 id="signature-experiences-heading" className="text-sm font-medium text-muted-foreground mb-3 text-center">Signature Experiences</h2>
+                <div className="grid grid-cols-2 gap-3" role="group" aria-labelledby="signature-experiences-heading">
                   {SIGNATURE_EXPERIENCES.map((exp) => {
                     const IconComponent = ExperienceIcons[exp.icon] || Wind
                     return (

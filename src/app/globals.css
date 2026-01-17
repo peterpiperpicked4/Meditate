@@ -398,7 +398,11 @@
   @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background;
 }
 
-/* Global focus-visible styles for all interactive elements */
+/*
+ * Global focus styles - provide fallback for elements without custom focus styles.
+ * Components using Tailwind's focus:ring-* or focus-visible:ring-* will override these
+ * since box-shadow (ring) takes visual precedence and outline is set to none.
+ */
 button:focus-visible,
 a:focus-visible,
 input:focus-visible,
@@ -406,17 +410,27 @@ select:focus-visible,
 textarea:focus-visible,
 [role="button"]:focus-visible,
 [role="link"]:focus-visible,
-[tabindex]:focus-visible {
-  outline: 2px solid hsl(var(--primary));
+[role="radio"]:focus-visible,
+[role="checkbox"]:focus-visible,
+[tabindex]:focus-visible:not([tabindex="-1"]) {
+  outline: 2px solid hsl(var(--ring));
   outline-offset: 2px;
 }
 
-/* Remove default outline since we're using custom focus styles */
-button:focus,
-a:focus,
-input:focus,
-select:focus,
-textarea:focus {
+/* Elements with Tailwind ring classes handle their own focus - remove outline to prevent double indicator */
+.focus\\:ring-2:focus,
+.focus-visible\\:ring-2:focus-visible,
+[class*="focus:ring"]:focus,
+[class*="focus-visible:ring"]:focus-visible {
+  outline: none;
+}
+
+/* Remove default outline for non-visible focus (mouse clicks) */
+button:focus:not(:focus-visible),
+a:focus:not(:focus-visible),
+input:focus:not(:focus-visible),
+select:focus:not(:focus-visible),
+textarea:focus:not(:focus-visible) {
   outline: none;
 }
 
