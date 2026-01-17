@@ -46,7 +46,7 @@ export function Header() {
     >
       <nav className="container mx-auto flex h-18 items-center justify-between px-4">
         {/* Logo */}
-        <Link href="/" className="group flex items-center space-x-3">
+        <Link href="/" className="group flex items-center space-x-3" aria-label="Zero to Deep - Home">
           <div className="relative flex h-9 w-9 items-center justify-center">
             {/* Outer glow ring */}
             <div className="absolute inset-0 rounded-full bg-gradient-to-br from-primary/40 to-accent/30 blur-sm transition-all duration-300 group-hover:blur-md group-hover:from-primary/60 group-hover:to-accent/50" />

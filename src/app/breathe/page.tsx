@@ -533,7 +533,7 @@ function BreathePageContent() {
         <div
           className={cn(
             'absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full transition-all duration-1000',
-            'w-[600px] h-[600px] bg-gradient-radial from-primary/[0.08] via-primary/[0.02] to-transparent blur-3xl',
+            'w-[min(600px,100vw)] h-[min(600px,100vw)] bg-gradient-radial from-primary/[0.08] via-primary/[0.02] to-transparent blur-3xl',
             timer.phase === 'inhale' && 'scale-125 from-primary/[0.12]',
             timer.phase === 'exhale' && 'scale-75 from-primary/[0.05]'
           )}
@@ -887,8 +887,8 @@ function BreathePageContent() {
               {/* Keyboard shortcuts hint */}
               {!timer.isRunning && (
                 <p className="text-center text-xs text-muted-foreground">
-                  Press <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px] font-mono">Space</kbd> to start,{' '}
-                  <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px] font-mono">F</kbd> for fullscreen
+                  Press <kbd className="px-1.5 py-0.5 bg-muted rounded text-xs font-mono">Space</kbd> to start,{' '}
+                  <kbd className="px-1.5 py-0.5 bg-muted rounded text-xs font-mono">F</kbd> for fullscreen
                 </p>
               )}
 

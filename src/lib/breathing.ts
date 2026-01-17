@@ -550,15 +550,6 @@ export function getActivePhases(pattern: BreathPattern): { phase: BreathPhase; d
     phases.push({ phase: 'hold2', duration: pattern.hold2 })
   }
 
-  console.log('🔄 getActivePhases:', {
-    patternName: pattern.name,
-    inhale: pattern.inhale,
-    hold1: pattern.hold1,
-    exhale: pattern.exhale,
-    hold2: pattern.hold2,
-    resultPhases: phases.map(p => `${p.phase}:${p.duration}s`).join(' → ')
-  })
-
   return phases
 }
 
@@ -576,7 +567,7 @@ export function formatPhase(phase: BreathPhase): string {
 
 // ===== SOUND PROFILES =====
 
-export type SoundProfile = 'singing-bowl' | 'soft-chime' | 'ocean-breath' | 'warm-pad' | 'minimal' | 'classic'
+export type SoundProfile = 'singing-bowl' | 'soft-chime' | 'ocean-breath' | 'warm-pad' | 'minimal' | 'classic' | 'human-voice'
 
 export interface SoundProfileInfo {
   id: SoundProfile
@@ -614,6 +605,11 @@ export const SOUND_PROFILES: SoundProfileInfo[] = [
     id: 'classic',
     name: 'Classic',
     description: 'Simple sine wave tones',
+  },
+  {
+    id: 'human-voice',
+    name: 'Human Voice',
+    description: 'Gentle vocal tones to guide your breath',
   },
 ]
 
@@ -892,21 +888,87 @@ function playClassic(frequency: number, volume: number, duration: number = 0.2):
   oscillator.stop(now + duration)
 }
 
+// ===== HUMAN VOICE =====
+// Gentle vocal tones - inhale on C3, exhale on G2, silence for holds
+function playHumanVoice(phase: BreathPhase, volume: number): void {
+  // Only play for inhale and exhale - holds are silent
+  if (phase !== 'inhale' && phase !== 'exhale') {
+    return
+  }
+
+  const audioFile = phase === 'inhale'
+    ? '/music/voice-inhale.mp3'  // C3 tone
+    : '/music/voice-exhale.mp3'  // G2 tone
+
+  const audio = new Audio(audioFile)
+  audio.volume = volume * 0.5 // Slightly reduced for blend
+
+  let fadeInterval: ReturnType<typeof setInterval> | null = null
+
+  const cleanup = () => {
+    if (fadeInterval) {
+      clearInterval(fadeInterval)
+      fadeInterval = null
+    }
+    try {
+      audio.pause()
+      audio.src = ''
+    } catch {
+      // Already cleaned up
+    }
+  }
+
+  audio.play().then(() => {
+    // Gentle fade out over 2 seconds
+    const startVolume = audio.volume
+    const fadeOutDuration = 2
+    const fadeStartTime = Date.now()
+    fadeInterval = setInterval(() => {
+      const elapsed = (Date.now() - fadeStartTime) / 1000
+      if (elapsed >= fadeOutDuration) {
+        cleanup()
+      } else {
+        const fadeProgress = elapsed / fadeOutDuration
+        audio.volume = startVolume * (1 - fadeProgress)
+      }
+    }, 50)
+  }).catch(() => {
+    cleanup()
+  })
+
+  // Cleanup on audio end as failsafe
+  audio.addEventListener('ended', cleanup)
+  audio.addEventListener('error', cleanup)
+}
+
 // Play singing bowl MP3 with fade out
 function playSingingBowlMP3(volume: number = 0.3, fadeOutDuration: number = 3): void {
   const audio = new Audio('/music/SingingBowl.mp3')
   audio.volume = volume * 0.3 // 30% of the passed volume
 
+  let fadeInterval: ReturnType<typeof setInterval> | null = null
+
+  const cleanup = () => {
+    if (fadeInterval) {
+      clearInterval(fadeInterval)
+      fadeInterval = null
+    }
+    try {
+      audio.pause()
+      audio.src = ''
+    } catch {
+      // Already cleaned up
+    }
+  }
+
   audio.play().then(() => {
     // Fade out after specified duration
     const startVolume = audio.volume
     const fadeStartTime = Date.now()
-    const fadeInterval = setInterval(() => {
+    fadeInterval = setInterval(() => {
       const elapsed = (Date.now() - fadeStartTime) / 1000
       if (elapsed >= fadeOutDuration) {
-        audio.volume = 0
-        audio.pause()
-        clearInterval(fadeInterval)
+        cleanup()
       } else {
         // Linear fade out over fadeOutDuration seconds
         const fadeProgress = elapsed / fadeOutDuration
@@ -914,8 +976,12 @@ function playSingingBowlMP3(volume: number = 0.3, fadeOutDuration: number = 3): 
       }
     }, 50)
   }).catch(() => {
-    // Fallback to synthesized if MP3 fails
+    cleanup()
   })
+
+  // Cleanup on audio end as failsafe
+  audio.addEventListener('ended', cleanup)
+  audio.addEventListener('error', cleanup)
 }
 
 // Main function to play phase sounds with selected profile
@@ -988,6 +1054,10 @@ export function playPhaseSound(
         if (phase !== 'hold1' && phase !== 'hold2') {
           playMinimal(freq, volume)
         }
+        break
+
+      case 'human-voice':
+        playHumanVoice(phase, volume)
         break
 
       case 'classic':

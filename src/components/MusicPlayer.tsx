@@ -55,7 +55,7 @@ export function MusicPlayer() {
   }
 
   return (
-    <div ref={containerRef} className="fixed bottom-4 right-4 z-50">
+    <div ref={containerRef} className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] right-[max(1rem,env(safe-area-inset-right))] z-50">
       {/* Expanded panel */}
       <div
         ref={panelRef}

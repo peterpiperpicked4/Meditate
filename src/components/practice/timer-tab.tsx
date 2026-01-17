@@ -32,13 +32,32 @@ const SESSION_TAGS = [
 
 type TimerState = 'idle' | 'running' | 'paused' | 'finished'
 
+// Singleton AudioContext for bell sounds
+let bellAudioContext: AudioContext | null = null
+
+function getBellAudioContext(): AudioContext | null {
+  if (bellAudioContext) return bellAudioContext
+  try {
+    const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof window.AudioContext }).webkitAudioContext
+    if (!AudioContextClass) return null
+    bellAudioContext = new AudioContextClass()
+    return bellAudioContext
+  } catch {
+    return null
+  }
+}
+
 // Simple bell sound using Web Audio API as fallback
 function playBellSound(frequency: number = 440, duration: number = 1) {
   try {
-    const AudioContext = window.AudioContext || (window as unknown as { webkitAudioContext: typeof window.AudioContext }).webkitAudioContext
-    if (!AudioContext) return
+    const audioContext = getBellAudioContext()
+    if (!audioContext) return
 
-    const audioContext = new AudioContext()
+    // Resume if suspended (browser autoplay policy)
+    if (audioContext.state === 'suspended') {
+      audioContext.resume()
+    }
+
     const oscillator = audioContext.createOscillator()
     const gainNode = audioContext.createGain()
 
@@ -361,7 +380,7 @@ export function TimerTab() {
       <div className="card-contemplative rounded-xl p-8 relative overflow-hidden">
         {timerState === 'running' && (
           <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-gradient-radial from-primary/10 to-transparent blur-3xl animate-glow-pulse" />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(400px,100vw)] h-[min(400px,100vw)] bg-gradient-radial from-primary/10 to-transparent blur-3xl animate-glow-pulse" />
           </div>
         )}
 

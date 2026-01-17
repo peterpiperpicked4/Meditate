@@ -142,15 +142,6 @@ export function useBreathingTimer({
             ? getRampedPattern(rampConfig, 0)
             : pattern
 
-          // Debug: log pattern after countdown
-          console.log('🫁 Countdown complete, starting INHALE with pattern:', {
-            name: currentPattern.name,
-            inhale: currentPattern.inhale,
-            hold1: currentPattern.hold1,
-            exhale: currentPattern.exhale,
-            hold2: currentPattern.hold2,
-          })
-
           if (soundEnabled) {
             playPhaseSound('inhale', soundVolume, soundProfile, muteHoldPhases)
           }
@@ -272,15 +263,6 @@ export function useBreathingTimer({
             nextPhaseType = 'inhale'
             nextPhaseDur = newCurrentPattern.inhale
         }
-
-        // DEBUG: Log phase transition
-        console.log('🔄 PHASE TRANSITION:', {
-          from: prevState.phase,
-          to: nextPhaseType,
-          pattern: newCurrentPattern.name,
-          hold1: newCurrentPattern.hold1,
-          hold2: newCurrentPattern.hold2,
-        })
 
         newPhase = nextPhaseType
         newPhaseDuration = nextPhaseDur
