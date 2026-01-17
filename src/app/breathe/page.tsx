@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import { Suspense } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { Play, Pause, Square, Timer, ArrowLeft, Settings, Check, Maximize, Minimize, Moon, Heart, Target, Zap, Wind, Flame, TrendingUp, Sparkles, BookOpen, Sunrise, Coffee, Leaf } from 'lucide-react'
@@ -64,7 +65,7 @@ function logError(context: string, error: unknown) {
   }
 }
 
-export default function BreathePage() {
+function BreathePageContent() {
   // URL params for quick-start links (e.g., ?duration=3)
   const searchParams = useSearchParams()
   const urlDuration = searchParams.get('duration')
@@ -947,5 +948,21 @@ export default function BreathePage() {
         )}
       </div>
     </div>
+  )
+}
+
+// Wrap in Suspense for useSearchParams
+export default function BreathePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/20 animate-pulse" />
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    }>
+      <BreathePageContent />
+    </Suspense>
   )
 }
