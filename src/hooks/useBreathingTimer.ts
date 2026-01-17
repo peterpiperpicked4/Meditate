@@ -143,6 +143,9 @@ export function useBreathingTimer({
           const phases = phasesRef.current
           const firstPhase = phases[0]
 
+          // Debug: log phases after countdown
+          console.log('🫁 Countdown complete, starting phases:', phases.map(p => `${p.phase}:${p.duration}s`))
+
           if (soundEnabled) {
             playPhaseSound(firstPhase.phase, soundVolume, soundProfile, muteHoldPhases)
           }
@@ -274,6 +277,16 @@ export function useBreathingTimer({
     const initialPattern = rampConfig?.enabled
       ? rampConfig.startPattern
       : pattern
+
+    // Debug: log the pattern being used
+    console.log('🫁 Timer starting with pattern:', {
+      name: initialPattern.name,
+      inhale: initialPattern.inhale,
+      hold1: initialPattern.hold1,
+      exhale: initialPattern.exhale,
+      hold2: initialPattern.hold2,
+      phases: getActivePhases(initialPattern).map(p => `${p.phase}:${p.duration}s`)
+    })
 
     setState(s => ({
       ...s,

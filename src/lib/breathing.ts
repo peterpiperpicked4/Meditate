@@ -912,7 +912,7 @@ export const DEFAULT_BREATHING_SETTINGS: BreathingSettings = {
 
 // ===== AMBIENT SOUNDS =====
 
-export type AmbientSound = 'rain' | 'ocean' | 'forest' | 'wind' | 'fire'
+export type AmbientSound = 'rain' | 'ocean' | 'river' | 'forest' | 'wind' | 'fire'
 
 export interface AmbientSoundInfo {
   id: AmbientSound
@@ -930,6 +930,11 @@ export const AMBIENT_SOUNDS: AmbientSoundInfo[] = [
     id: 'ocean',
     name: 'Ocean Waves',
     description: 'Rhythmic waves on shore',
+  },
+  {
+    id: 'river',
+    name: 'River Stream',
+    description: 'Flowing water and gentle currents',
   },
   {
     id: 'forest',
@@ -955,6 +960,16 @@ let ambientNodes: {
   filter: BiquadFilterNode | null
   noiseSource?: AudioBufferSourceNode | null
 } | null = null
+
+// Audio element for MP3-based ambient sounds (higher fidelity)
+let ambientAudioElement: HTMLAudioElement | null = null
+
+// Map of ambient sounds that have MP3 files (higher fidelity)
+const AMBIENT_MP3_FILES: Partial<Record<AmbientSound, string>> = {
+  rain: '/music/Rain.mp3',
+  ocean: '/music/Ocean.mp3',
+  river: '/music/River.mp3',
+}
 
 // Cache for ambient sound buffers (prevents regeneration on each start)
 const ambientBufferCache = new Map<string, AudioBuffer>()
@@ -1066,11 +1081,43 @@ const AMBIENT_VOLUME_MULTIPLIER = 0.5
 // Start ambient sound loop
 export function startAmbientSound(type: AmbientSound, volume: number = 0.08): void {
   try {
-    const ctx = getAudioContext()
-    resumeAudio(ctx)
-
     // Stop any existing ambient sound
     stopAmbientSound()
+
+    // Check if this ambient sound has an MP3 file (higher fidelity)
+    const mp3File = AMBIENT_MP3_FILES[type]
+    if (mp3File) {
+      // Use HTML Audio element for MP3-based ambient sounds
+      const audio = new Audio(mp3File)
+      audio.loop = true
+      audio.volume = volume * AMBIENT_VOLUME_MULTIPLIER
+
+      // Fade in effect using volume ramping
+      audio.volume = 0
+      audio.play().then(() => {
+        // Gradual fade in over 1 second
+        let fadeVolume = 0
+        const targetVolume = volume * AMBIENT_VOLUME_MULTIPLIER
+        const fadeInterval = setInterval(() => {
+          fadeVolume += targetVolume / 20 // 20 steps over ~1 second
+          if (fadeVolume >= targetVolume) {
+            audio.volume = targetVolume
+            clearInterval(fadeInterval)
+          } else {
+            audio.volume = fadeVolume
+          }
+        }, 50)
+      }).catch((e) => {
+        console.warn('Failed to play ambient MP3:', e)
+      })
+
+      ambientAudioElement = audio
+      return
+    }
+
+    // Fall back to synthesized ambient sounds
+    const ctx = getAudioContext()
+    resumeAudio(ctx)
 
     // Use cached buffer for better performance
     const buffer = getAmbientBuffer(ctx, type, 4)
@@ -1087,7 +1134,7 @@ export function startAmbientSound(type: AmbientSound, volume: number = 0.08): vo
 
     const filter = ctx.createBiquadFilter()
     filter.type = 'lowpass'
-    filter.frequency.value = type === 'rain' ? 3000 : type === 'ocean' ? 1500 : 2500
+    filter.frequency.value = type === 'ocean' ? 1500 : 2500
 
     source.connect(filter)
     filter.connect(gain)
@@ -1103,6 +1150,26 @@ export function startAmbientSound(type: AmbientSound, volume: number = 0.08): vo
 
 // Stop ambient sound with fade out
 export function stopAmbientSound(): void {
+  // Stop MP3-based ambient sound
+  if (ambientAudioElement) {
+    const audio = ambientAudioElement
+    const startVolume = audio.volume
+    // Fade out over 0.5 seconds
+    let fadeVolume = startVolume
+    const fadeInterval = setInterval(() => {
+      fadeVolume -= startVolume / 10 // 10 steps over ~0.5 second
+      if (fadeVolume <= 0) {
+        audio.pause()
+        audio.src = ''
+        clearInterval(fadeInterval)
+      } else {
+        audio.volume = fadeVolume
+      }
+    }, 50)
+    ambientAudioElement = null
+  }
+
+  // Stop synthesized ambient sound
   if (ambientNodes?.gain && ambientNodes?.source) {
     try {
       const ctx = getAudioContext()
@@ -1123,10 +1190,17 @@ export function stopAmbientSound(): void {
 
 // Update ambient volume
 export function setAmbientVolume(volume: number): void {
+  const adjustedVolume = volume * AMBIENT_VOLUME_MULTIPLIER
+
+  // Update MP3-based ambient volume
+  if (ambientAudioElement) {
+    ambientAudioElement.volume = adjustedVolume
+  }
+
+  // Update synthesized ambient volume
   if (ambientNodes?.gain) {
     try {
       const ctx = getAudioContext()
-      const adjustedVolume = volume * AMBIENT_VOLUME_MULTIPLIER
       ambientNodes.gain.gain.linearRampToValueAtTime(adjustedVolume, ctx.currentTime + 0.1)
     } catch (e) {
       // Ignore
