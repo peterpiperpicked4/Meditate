@@ -78,7 +78,7 @@ function BreathePageContent() {
   const [pattern, setPattern] = React.useState<BreathPattern>(DEFAULT_PATTERN)
   const [durationMinutes, setDurationMinutes] = React.useState(initialDuration)
   const [soundEnabled, setSoundEnabled] = React.useState(DEFAULT_BREATHING_SETTINGS.soundEnabled)
-  const [soundProfile, setSoundProfile] = React.useState<SoundProfile>('singing-bowl')
+  const [soundProfile, setSoundProfile] = React.useState<SoundProfile>('human-voice')
   const [soundVolume, setSoundVolume] = React.useState(DEFAULT_BREATHING_SETTINGS.soundVolume)
   const [hapticEnabled, setHapticEnabled] = React.useState(DEFAULT_BREATHING_SETTINGS.hapticEnabled)
   const [muteHoldPhases, setMuteHoldPhases] = React.useState(DEFAULT_BREATHING_SETTINGS.muteHoldPhases)
