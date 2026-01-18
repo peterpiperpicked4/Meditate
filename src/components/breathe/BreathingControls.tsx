@@ -16,7 +16,8 @@ import {
 import { Slider } from '@/components/ui/slider'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { Volume2, VolumeX, Smartphone, Music, Play, CloudRain, Volume1, ArrowRight, TrendingUp } from 'lucide-react'
+import { Volume2, VolumeX, Smartphone, Music, Play, Pause, CloudRain, Volume1, ArrowRight, TrendingUp, SkipBack, SkipForward, Repeat } from 'lucide-react'
+import { useMusic, MUSIC_TRACKS } from '@/contexts/MusicContext'
 
 interface BreathingControlsProps {
   pattern: BreathPattern
@@ -71,6 +72,9 @@ export const BreathingControls = React.memo(function BreathingControls({
 }: BreathingControlsProps) {
   const [showCustom, setShowCustom] = React.useState(false)
   const [customPattern, setCustomPattern] = React.useState<BreathPattern>(pattern)
+
+  // Music context
+  const { currentTrack, isPlaying, volume: musicVolume, isLooping, setVolume: setMusicVolume, setLooping, toggle: toggleMusic, selectTrack, nextTrack, prevTrack } = useMusic()
 
   const cycleDuration = getCycleDuration(pattern)
   const breathsPerSession = Math.floor((duration * 60) / cycleDuration)
@@ -320,7 +324,7 @@ export const BreathingControls = React.memo(function BreathingControls({
           <div>
             <h3 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
               <Music className="h-4 w-4" aria-hidden="true" />
-              Sound Style
+              Breath Sounds
             </h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2" role="radiogroup" aria-label="Sound profile selection">
               {SOUND_PROFILES.map((profile) => (
@@ -506,6 +510,120 @@ export const BreathingControls = React.memo(function BreathingControls({
           )}
         </div>
       )}
+
+      {/* Background Music section */}
+      <div className="space-y-3">
+        <h3 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+          <Music className="h-4 w-4" aria-hidden="true" />
+          Background Music
+        </h3>
+
+        {/* Track selector */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2" role="radiogroup" aria-label="Select background music">
+          {MUSIC_TRACKS.map((track) => (
+            <button
+              key={track.id}
+              onClick={() => !disabled && selectTrack(track)}
+              role="radio"
+              aria-checked={currentTrack?.id === track.id}
+              disabled={disabled}
+              className={cn(
+                'p-3 rounded-lg border text-left transition-all min-h-[44px]',
+                currentTrack?.id === track.id
+                  ? 'border-primary bg-primary/10 text-foreground'
+                  : 'border-border/50 bg-card/30 text-muted-foreground hover:border-primary/50 hover:bg-card/50',
+                disabled && 'cursor-not-allowed opacity-50'
+              )}
+            >
+              <span className="text-sm font-medium block truncate">{track.name}</span>
+              {currentTrack?.id === track.id && isPlaying && (
+                <span className="flex gap-0.5 items-end mt-1" aria-label="Now playing">
+                  <span className="w-1 h-2 bg-primary rounded-full animate-pulse" />
+                  <span className="w-1 h-3 bg-primary rounded-full animate-pulse" style={{ animationDelay: '0.15s' }} />
+                  <span className="w-1 h-2.5 bg-primary rounded-full animate-pulse" style={{ animationDelay: '0.3s' }} />
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+
+        {/* Playback controls */}
+        <div className="flex items-center justify-center gap-2">
+          <button
+            onClick={prevTrack}
+            disabled={disabled}
+            className={cn(
+              'p-2 rounded-lg hover:bg-muted/50 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center text-muted-foreground hover:text-foreground',
+              disabled && 'cursor-not-allowed opacity-50'
+            )}
+            aria-label="Previous track"
+          >
+            <SkipBack className="h-4 w-4" aria-hidden="true" />
+          </button>
+          <button
+            onClick={toggleMusic}
+            disabled={disabled}
+            className={cn(
+              'p-3 rounded-full transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center',
+              isPlaying ? 'bg-primary text-primary-foreground' : 'bg-muted/50 text-foreground hover:bg-muted',
+              disabled && 'cursor-not-allowed opacity-50'
+            )}
+            aria-label={isPlaying ? 'Pause' : 'Play'}
+          >
+            {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5 ml-0.5" />}
+          </button>
+          <button
+            onClick={nextTrack}
+            disabled={disabled}
+            className={cn(
+              'p-2 rounded-lg hover:bg-muted/50 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center text-muted-foreground hover:text-foreground',
+              disabled && 'cursor-not-allowed opacity-50'
+            )}
+            aria-label="Next track"
+          >
+            <SkipForward className="h-4 w-4" aria-hidden="true" />
+          </button>
+        </div>
+
+        {/* Loop toggle and volume */}
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-muted-foreground">Repeat</span>
+          <button
+            onClick={() => !disabled && setLooping(!isLooping)}
+            disabled={disabled}
+            className={cn(
+              'p-2 rounded-lg transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center',
+              isLooping
+                ? 'bg-primary/20 text-primary'
+                : 'bg-muted/30 text-muted-foreground hover:bg-muted/50',
+              disabled && 'cursor-not-allowed opacity-50'
+            )}
+            aria-label={isLooping ? 'Disable repeat' : 'Enable repeat'}
+            aria-pressed={isLooping}
+          >
+            <Repeat className="h-4 w-4" aria-hidden="true" />
+          </button>
+        </div>
+
+        {/* Music volume slider */}
+        <div>
+          <div className="flex justify-between mb-2">
+            <label htmlFor="slider-music-volume" className="text-sm">Music Volume</label>
+            <span className="text-sm font-mono">{Math.round(musicVolume * 100)}%</span>
+          </div>
+          <Slider
+            id="slider-music-volume"
+            value={[musicVolume * 100]}
+            onValueChange={([v]) => !disabled && setMusicVolume(v / 100)}
+            min={0}
+            max={100}
+            step={5}
+            disabled={disabled}
+            aria-valuetext={`${Math.round(musicVolume * 100)} percent`}
+            className="[&_[role=slider]]:h-5 [&_[role=slider]]:w-5"
+          />
+        </div>
+      </div>
 
       {/* Settings toggles */}
       <div className="flex items-center gap-4 pt-2">
