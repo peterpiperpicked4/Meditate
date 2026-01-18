@@ -100,7 +100,7 @@ export const FULL_EXPERIENCE_CONFIG: FullExperienceConfig = {
   duration: 10,
   soundEnabled: true,
   soundProfile: 'human-voice',
-  soundVolume: 0.3,
+  soundVolume: 0.25,
   ambientSound: 'rain',
   ambientVolume: 0.15,
   musicTrackId: 'space-between',
@@ -1117,7 +1117,7 @@ export interface BreathingSettings {
 
 export const DEFAULT_BREATHING_SETTINGS: BreathingSettings = {
   soundEnabled: true,
-  soundVolume: 0.3,
+  soundVolume: 0.25,
   hapticEnabled: true,
   defaultDuration: 5,
   muteHoldPhases: true,
