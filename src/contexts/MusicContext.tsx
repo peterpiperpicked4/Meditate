@@ -35,7 +35,7 @@ interface MusicContextType {
 const MusicContext = React.createContext<MusicContextType | null>(null)
 
 const MUSIC_STORAGE_KEY = 'ztd_music_settings'
-const DEFAULT_VOLUME = 0.5
+const DEFAULT_VOLUME = 0.3
 
 export function MusicProvider({ children }: { children: React.ReactNode }) {
   const [currentTrack, setCurrentTrack] = React.useState<MusicTrack | null>(null)
@@ -51,7 +51,8 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       if (saved) {
         const settings = JSON.parse(saved)
         if (settings.volume !== undefined) {
-          setVolumeState(settings.volume)
+          // Migration: reset volume to 30% if user had old 40-50% default
+          setVolumeState(settings.volume >= 0.4 ? 0.3 : settings.volume)
         }
         if (settings.isLooping !== undefined) {
           setIsLooping(settings.isLooping)
