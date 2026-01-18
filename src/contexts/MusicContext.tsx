@@ -96,6 +96,8 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   }, [currentTrack])
 
   // Initialize audio element
+  // Note: We intentionally omit 'volume' from deps - we handle volume updates separately
+  // to avoid recreating the audio element when volume changes
   React.useEffect(() => {
     if (typeof window === 'undefined') return
 
@@ -126,6 +128,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       audio.pause()
       audio.src = ''
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Update loop setting on audio element
@@ -143,6 +146,8 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   }, [volume])
 
   // Handle track changes
+  // Note: We intentionally omit 'isPlaying' from deps - we only care about its value
+  // at the moment of track change, not about re-running when isPlaying changes
   React.useEffect(() => {
     if (!audioRef.current || !currentTrack) return
 
@@ -156,6 +161,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
         setIsPlaying(false)
       })
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentTrack])
 
   const setVolume = React.useCallback((newVolume: number) => {

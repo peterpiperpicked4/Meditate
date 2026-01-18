@@ -11,7 +11,19 @@ import {
   getRampedPattern,
   playPhaseSound,
   vibrate,
+  isBreathingDebugEnabled,
 } from '@/lib/breathing'
+
+// Timer-specific debug logging
+function timerDebugLog(message: string, data?: unknown): void {
+  if (!isBreathingDebugEnabled()) return
+  const timestamp = new Date().toISOString().split('T')[1].slice(0, -1)
+  if (data !== undefined) {
+    console.log(`[${timestamp}] [Breathing:Timer] ${message}`, data)
+  } else {
+    console.log(`[${timestamp}] [Breathing:Timer] ${message}`)
+  }
+}
 
 export interface BreathingTimerState {
   phase: BreathPhase
@@ -300,6 +312,8 @@ export function useBreathingTimer({
   }, [soundEnabled, soundVolume, soundProfile, hapticEnabled, muteHoldPhases, rampConfig, pattern, onComplete, onPhaseChange])
 
   const start = useCallback(() => {
+    timerDebugLog('start() called')
+
     // Cancel any existing animation frame to prevent multiple ticks
     if (animationRef.current) {
       cancelAnimationFrame(animationRef.current)
@@ -321,8 +335,8 @@ export function useBreathingTimer({
     // This prevents stale phases from previous sessions
     phasesRef.current = getActivePhases(initialPattern)
 
-    // Debug: log the pattern being used
-    console.log('🫁 Timer starting with pattern:', {
+    // Log the pattern being used (always show this one for visibility)
+    timerDebugLog('Timer starting with pattern', {
       name: initialPattern.name,
       inhale: initialPattern.inhale,
       hold1: initialPattern.hold1,
@@ -346,18 +360,24 @@ export function useBreathingTimer({
     }))
 
     animationRef.current = requestAnimationFrame(tick)
+    timerDebugLog('Animation frame scheduled')
   }, [tick, rampConfig, pattern])
 
   const pause = useCallback(() => {
+    timerDebugLog('pause() called')
+
     // Cancel animation frame when pausing to stop the tick loop
     if (animationRef.current) {
       cancelAnimationFrame(animationRef.current)
       animationRef.current = null
+      timerDebugLog('Animation frame cancelled')
     }
     setState(s => ({ ...s, isPaused: true }))
   }, [])
 
   const resume = useCallback(() => {
+    timerDebugLog('resume() called')
+
     // Cancel any existing frame before resuming
     if (animationRef.current) {
       cancelAnimationFrame(animationRef.current)
@@ -365,11 +385,15 @@ export function useBreathingTimer({
     lastTimeRef.current = 0
     setState(s => ({ ...s, isPaused: false }))
     animationRef.current = requestAnimationFrame(tick)
+    timerDebugLog('Animation frame scheduled for resume')
   }, [tick])
 
   const stop = useCallback(() => {
+    timerDebugLog('stop() called')
+
     if (animationRef.current) {
       cancelAnimationFrame(animationRef.current)
+      timerDebugLog('Animation frame cancelled')
     }
     elapsedTimeRef.current = 0
     const initialPattern = rampConfig?.enabled

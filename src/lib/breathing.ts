@@ -1002,9 +1002,12 @@ export function playPhaseSound(
   profile: SoundProfile = 'singing-bowl',
   muteHoldPhases: boolean = false
 ): void {
+  debugLog('PhaseSound', `Playing ${phase} sound with profile ${profile} at volume ${volume}`)
+
   try {
     // Skip hold sounds if mute during holds is enabled
     if (muteHoldPhases && (phase === 'hold1' || phase === 'hold2')) {
+      debugLog('PhaseSound', `Skipping ${phase} - mute hold phases enabled`)
       return
     }
 
@@ -1170,7 +1173,75 @@ export const AMBIENT_SOUNDS: AmbientSoundInfo[] = [
   },
 ]
 
-// Ambient sound state
+// ===== DEBUG LOGGING =====
+// Enable with ?debug=1 in URL or call enableBreathingDebug()
+let debugEnabled = false
+
+export function enableBreathingDebug(): void {
+  debugEnabled = true
+  console.log('[Breathing] Debug logging enabled')
+}
+
+export function disableBreathingDebug(): void {
+  debugEnabled = false
+}
+
+export function isBreathingDebugEnabled(): boolean {
+  return debugEnabled
+}
+
+function debugLog(category: string, message: string, data?: unknown): void {
+  if (!debugEnabled) return
+  const timestamp = new Date().toISOString().split('T')[1].slice(0, -1)
+  if (data !== undefined) {
+    console.log(`[${timestamp}] [Breathing:${category}] ${message}`, data)
+  } else {
+    console.log(`[${timestamp}] [Breathing:${category}] ${message}`)
+  }
+}
+
+// Initialize debug from URL on load
+if (typeof window !== 'undefined') {
+  const params = new URLSearchParams(window.location.search)
+  if (params.get('debug') === '1' || params.get('debug') === 'true') {
+    debugEnabled = true
+    console.log('[Breathing] Debug mode enabled via URL parameter')
+  }
+}
+
+// ===== AUDIO CONTEXT RESILIENCE =====
+let audioContextCheckInterval: ReturnType<typeof setInterval> | null = null
+
+function startAudioContextHeartbeat(): void {
+  if (audioContextCheckInterval) return
+
+  audioContextCheckInterval = setInterval(() => {
+    if (audioContext && audioContext.state === 'suspended') {
+      debugLog('AudioContext', 'Detected suspended context, attempting resume')
+      audioContext.resume().then(() => {
+        debugLog('AudioContext', 'Successfully resumed suspended context')
+      }).catch((e) => {
+        debugLog('AudioContext', 'Failed to resume context', e)
+      })
+    }
+  }, 1000)
+}
+
+function stopAudioContextHeartbeat(): void {
+  if (audioContextCheckInterval) {
+    clearInterval(audioContextCheckInterval)
+    audioContextCheckInterval = null
+  }
+}
+
+// ===== AMBIENT SOUND STATE =====
+// Track active fade operations to prevent race conditions
+let ambientFadeOperation: {
+  audio?: HTMLAudioElement
+  interval?: ReturnType<typeof setInterval>
+  timeout?: ReturnType<typeof setTimeout>
+} | null = null
+
 let ambientNodes: {
   source: AudioBufferSourceNode | OscillatorNode | null
   gain: GainNode | null
@@ -1295,44 +1366,93 @@ function generateAmbientBuffer(ctx: AudioContext, type: AmbientSound, duration: 
 // Ambient volume multiplier - reduces max volume to prevent overpowering
 const AMBIENT_VOLUME_MULTIPLIER = 0.5
 
+// Cancel any in-progress fade operation immediately
+function cancelFadeOperation(): void {
+  if (ambientFadeOperation) {
+    if (ambientFadeOperation.interval) {
+      clearInterval(ambientFadeOperation.interval)
+    }
+    if (ambientFadeOperation.timeout) {
+      clearTimeout(ambientFadeOperation.timeout)
+    }
+    // Immediately stop the audio if it was fading out
+    if (ambientFadeOperation.audio) {
+      try {
+        ambientFadeOperation.audio.pause()
+        ambientFadeOperation.audio.src = ''
+      } catch (e) {
+        // Ignore cleanup errors
+      }
+    }
+    ambientFadeOperation = null
+    debugLog('Ambient', 'Cancelled in-progress fade operation')
+  }
+}
+
 // Start ambient sound loop
 export function startAmbientSound(type: AmbientSound, volume: number = 0.08): void {
+  debugLog('Ambient', `Starting ambient sound: ${type} at volume ${volume}`)
+
   try {
-    // Stop any existing ambient sound
-    stopAmbientSound()
+    // Cancel any in-progress fades first
+    cancelFadeOperation()
+
+    // Stop any existing ambient sound immediately (no fade)
+    stopAmbientSound(true)
+
+    // Start the AudioContext heartbeat to keep it alive
+    startAudioContextHeartbeat()
 
     // Check if this ambient sound has an MP3 file (higher fidelity)
     const mp3File = AMBIENT_MP3_FILES[type]
     if (mp3File) {
+      debugLog('Ambient', `Using MP3 file: ${mp3File}`)
+
       // Use HTML Audio element for MP3-based ambient sounds
       const audio = new Audio(mp3File)
       audio.loop = true
-      audio.volume = volume * AMBIENT_VOLUME_MULTIPLIER
+      audio.volume = 0 // Start at 0 for fade in
 
-      // Fade in effect using volume ramping
-      audio.volume = 0
+      // Store reference immediately (before async play)
+      ambientAudioElement = audio
+
       audio.play().then(() => {
+        debugLog('Ambient', 'MP3 playback started, beginning fade in')
+
         // Gradual fade in over 1 second
         let fadeVolume = 0
         const targetVolume = volume * AMBIENT_VOLUME_MULTIPLIER
         const fadeInterval = setInterval(() => {
-          fadeVolume += targetVolume / 20 // 20 steps over ~1 second
+          // Check if this audio element is still the active one
+          if (ambientAudioElement !== audio) {
+            clearInterval(fadeInterval)
+            debugLog('Ambient', 'Fade in cancelled - audio element changed')
+            return
+          }
+
+          fadeVolume += targetVolume / 10 // 10 steps over ~1 second (100ms intervals)
           if (fadeVolume >= targetVolume) {
             audio.volume = targetVolume
             clearInterval(fadeInterval)
+            debugLog('Ambient', 'Fade in complete')
           } else {
             audio.volume = fadeVolume
           }
-        }, 50)
+        }, 100)
       }).catch((e) => {
+        debugLog('Ambient', 'Failed to play ambient MP3', e)
         console.warn('Failed to play ambient MP3:', e)
+        // Clear the reference if playback failed
+        if (ambientAudioElement === audio) {
+          ambientAudioElement = null
+        }
       })
 
-      ambientAudioElement = audio
       return
     }
 
     // Fall back to synthesized ambient sounds
+    debugLog('Ambient', 'Using synthesized sound')
     const ctx = getAudioContext()
     resumeAudio(ctx)
 
@@ -1358,50 +1478,112 @@ export function startAmbientSound(type: AmbientSound, volume: number = 0.08): vo
     gain.connect(ctx.destination)
 
     source.start()
+    debugLog('Ambient', 'Synthesized sound started')
 
     ambientNodes = { source, gain, filter }
   } catch (e) {
+    debugLog('Ambient', 'Failed to start ambient sound', e)
     console.warn('Failed to start ambient sound:', e)
   }
 }
 
 // Stop ambient sound with fade out
-export function stopAmbientSound(): void {
+// Set immediate=true to stop without fade (used when restarting)
+export function stopAmbientSound(immediate: boolean = false): void {
+  debugLog('Ambient', `Stopping ambient sound (immediate: ${immediate})`)
+
+  // Cancel any existing fade operation first
+  cancelFadeOperation()
+
   // Stop MP3-based ambient sound
   if (ambientAudioElement) {
     const audio = ambientAudioElement
-    const startVolume = audio.volume
-    // Fade out over 0.5 seconds
-    let fadeVolume = startVolume
-    const fadeInterval = setInterval(() => {
-      fadeVolume -= startVolume / 10 // 10 steps over ~0.5 second
-      if (fadeVolume <= 0) {
+    ambientAudioElement = null // Clear reference immediately to prevent race conditions
+
+    if (immediate) {
+      // Stop immediately without fade
+      try {
         audio.pause()
         audio.src = ''
-        clearInterval(fadeInterval)
-      } else {
-        audio.volume = fadeVolume
+      } catch (e) {
+        // Ignore cleanup errors
       }
-    }, 50)
-    ambientAudioElement = null
+      debugLog('Ambient', 'MP3 stopped immediately')
+    } else {
+      // Fade out over 0.5 seconds
+      const startVolume = audio.volume
+      if (startVolume <= 0) {
+        // Already silent, just stop
+        audio.pause()
+        audio.src = ''
+        debugLog('Ambient', 'MP3 was silent, stopped immediately')
+      } else {
+        let fadeVolume = startVolume
+        const fadeInterval = setInterval(() => {
+          fadeVolume -= startVolume / 5 // 5 steps over ~0.5 second (100ms intervals)
+          if (fadeVolume <= 0) {
+            audio.pause()
+            audio.src = ''
+            clearInterval(fadeInterval)
+            // Clear fade operation tracking
+            if (ambientFadeOperation?.interval === fadeInterval) {
+              ambientFadeOperation = null
+            }
+            debugLog('Ambient', 'MP3 fade out complete')
+          } else {
+            audio.volume = fadeVolume
+          }
+        }, 100)
+
+        // Track this fade operation so it can be cancelled if needed
+        ambientFadeOperation = { audio, interval: fadeInterval }
+        debugLog('Ambient', 'MP3 fade out started')
+      }
+    }
   }
 
   // Stop synthesized ambient sound
   if (ambientNodes?.gain && ambientNodes?.source) {
-    try {
-      const ctx = getAudioContext()
-      ambientNodes.gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.5)
-      setTimeout(() => {
-        try {
-          ambientNodes?.source?.stop()
-        } catch (e) {
-          // Already stopped
-        }
-        ambientNodes = null
-      }, 600)
-    } catch (e) {
-      ambientNodes = null
+    const nodes = ambientNodes
+    ambientNodes = null // Clear reference immediately
+
+    if (immediate) {
+      // Stop immediately without fade
+      try {
+        nodes.source?.stop()
+      } catch (e) {
+        // Already stopped
+      }
+      debugLog('Ambient', 'Synthesized sound stopped immediately')
+    } else {
+      try {
+        const ctx = getAudioContext()
+        nodes.gain!.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.5)
+        const timeout = setTimeout(() => {
+          try {
+            nodes.source?.stop()
+          } catch (e) {
+            // Already stopped
+          }
+          // Clear fade operation tracking
+          if (ambientFadeOperation?.timeout === timeout) {
+            ambientFadeOperation = null
+          }
+          debugLog('Ambient', 'Synthesized sound fade out complete')
+        }, 600)
+
+        // Track this fade operation
+        ambientFadeOperation = { timeout }
+        debugLog('Ambient', 'Synthesized sound fade out started')
+      } catch (e) {
+        debugLog('Ambient', 'Error during synthesized sound stop', e)
+      }
     }
+  }
+
+  // Stop the heartbeat if nothing is playing
+  if (!ambientAudioElement && !ambientNodes) {
+    stopAudioContextHeartbeat()
   }
 }
 

@@ -30,6 +30,8 @@ import {
 } from '@/lib/breathing'
 import { useMusic, MUSIC_TRACKS } from '@/contexts/MusicContext'
 import { cn } from '@/lib/utils'
+import { AudioErrorBoundary } from '@/components/AudioErrorBoundary'
+import { StressTestPanel } from '@/components/breathe/StressTestPanel'
 
 // Default to 4-7-8 pattern
 const DEFAULT_PATTERN = BREATH_PRESETS.find(p => p.id === '4-7-8') || BREATH_PRESETS[0]
@@ -66,10 +68,11 @@ function logError(context: string, error: unknown) {
 }
 
 function BreathePageContent() {
-  // URL params for quick-start links (e.g., ?duration=3)
+  // URL params for quick-start links (e.g., ?duration=3) and debug mode
   const searchParams = useSearchParams()
   const urlDuration = searchParams.get('duration')
   const initialDuration = urlDuration ? parseInt(urlDuration, 10) : DEFAULT_BREATHING_SETTINGS.defaultDuration
+  const isDebugMode = searchParams.get('debug') === '1' || searchParams.get('debug') === 'true'
 
   // Music context for Full Experience mode
   const { play: playMusic, pause: pauseMusic, setVolume: setMusicVolume } = useMusic()
@@ -763,8 +766,9 @@ function BreathePageContent() {
                         aria-label={`${preset.name}: ${preset.description}. ${preset.duration} minute session.`}
                         aria-pressed={isSelected}
                         className={cn(
-                          "flex flex-col items-center gap-2 p-4 rounded-xl border transition-all min-h-[100px] min-w-[80px]",
-                          "hover:border-primary/50 hover:bg-primary/5 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2",
+                          // Responsive min-width: smaller on mobile, larger on desktop
+                          "flex flex-col items-center gap-2 p-3 sm:p-4 rounded-xl border transition-all min-h-[90px] sm:min-h-[100px] min-w-[70px] sm:min-w-[80px]",
+                          "hover:border-primary/50 hover:bg-primary/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                           isSelected
                             ? "border-primary bg-primary/10"
                             : "border-border/50 bg-card/30"
@@ -800,8 +804,8 @@ function BreathePageContent() {
                 <div
                   className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20"
                   role="status"
-                  aria-live="polite"
-                  aria-label={`Ramping to target pattern: ${Math.round(timer.rampProgress * 100)}% complete. Current: ${Math.round(timer.currentPattern.inhale * 10) / 10} seconds inhale, ${Math.round(timer.currentPattern.exhale * 10) / 10} seconds exhale.`}
+                  // Only announce at major milestones (25%, 50%, 75%) to avoid excessive screen reader chatter
+                  aria-live="off"
                 >
                   <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden" aria-hidden="true">
                     <div
@@ -809,12 +813,18 @@ function BreathePageContent() {
                       style={{ width: `${timer.rampProgress * 100}%` }}
                     />
                   </div>
-                  <span className="text-xs text-primary" aria-hidden="true">
+                  <span className="text-xs text-primary">
                     Ramping: {Math.round(timer.currentPattern.inhale * 10) / 10}s in
                     {timer.currentPattern.hold1 > 0 && `, ${Math.round(timer.currentPattern.hold1 * 10) / 10}s hold`}
                     , {Math.round(timer.currentPattern.exhale * 10) / 10}s out
                   </span>
                 </div>
+                {/* Announce only at major milestones for screen readers */}
+                <span className="sr-only" aria-live="polite">
+                  {Math.round(timer.rampProgress * 100) === 25 && 'Ramp 25% complete'}
+                  {Math.round(timer.rampProgress * 100) === 50 && 'Ramp 50% complete'}
+                  {Math.round(timer.rampProgress * 100) === 75 && 'Ramp 75% complete'}
+                </span>
               </div>
             )}
 
@@ -900,7 +910,8 @@ function BreathePageContent() {
               {showSettings && (
                 <div
                   ref={settingsPanelRef}
-                  className="mt-8 p-6 rounded-xl border border-border/50 bg-card/30"
+                  // Responsive padding: less on mobile, more on desktop
+                  className="mt-6 sm:mt-8 p-4 sm:p-6 rounded-xl border border-border/50 bg-card/30"
                   role={timer.isRunning ? "dialog" : "region"}
                   aria-modal={timer.isRunning ? "true" : undefined}
                   aria-label="Breathing session settings"
@@ -950,23 +961,41 @@ function BreathePageContent() {
             </p>
           </div>
         )}
+
+        {/* Stress Test Panel - only visible in debug mode */}
+        {isDebugMode && (
+          <StressTestPanel
+            onPause={timer.pause}
+            onResume={timer.resume}
+            onStart={startFullExperience}
+            onStop={() => {
+              timer.stop()
+              stopAmbientSound()
+              pauseMusic()
+            }}
+            isRunning={timer.isRunning}
+            isPaused={timer.isPaused}
+          />
+        )}
       </div>
     </div>
   )
 }
 
-// Wrap in Suspense for useSearchParams
+// Wrap in Suspense for useSearchParams and AudioErrorBoundary for resilience
 export default function BreathePage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/20 animate-pulse" />
-          <p className="text-muted-foreground">Loading...</p>
+    <AudioErrorBoundary>
+      <Suspense fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/20 animate-pulse" />
+            <p className="text-muted-foreground">Loading...</p>
+          </div>
         </div>
-      </div>
-    }>
-      <BreathePageContent />
-    </Suspense>
+      }>
+        <BreathePageContent />
+      </Suspense>
+    </AudioErrorBoundary>
   )
 }

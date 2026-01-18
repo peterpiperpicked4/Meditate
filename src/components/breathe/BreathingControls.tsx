@@ -344,7 +344,8 @@ export const BreathingControls = React.memo(function BreathingControls({
                   }}
                   className={cn(
                     'p-3 rounded-lg border text-left transition-all min-h-[44px] relative group cursor-pointer',
-                    'focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2',
+                    // Enhanced focus indicator: thicker ring with high-contrast offset for accessibility
+                    'focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background',
                     soundProfile === profile.id
                       ? 'border-primary bg-primary/10 text-foreground'
                       : 'border-border/50 bg-card/30 text-muted-foreground hover:border-primary/50 hover:bg-card/50',
@@ -461,7 +462,8 @@ export const BreathingControls = React.memo(function BreathingControls({
                 }}
                 className={cn(
                   'p-3 rounded-lg border text-left transition-all min-h-[44px] relative group cursor-pointer',
-                  'focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2',
+                  // Enhanced focus indicator: thicker ring with high-contrast offset for accessibility
+                  'focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background',
                   ambientSound === sound.id
                     ? 'border-primary bg-primary/10 text-foreground'
                     : 'border-border/50 bg-card/30 text-muted-foreground hover:border-primary/50 hover:bg-card/50',
