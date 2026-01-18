@@ -114,8 +114,12 @@ function BreathePageContent() {
       if (savedSettings) {
         const settings = JSON.parse(savedSettings)
         setSoundEnabled(settings.soundEnabled ?? DEFAULT_BREATHING_SETTINGS.soundEnabled)
-        setSoundProfile(settings.soundProfile ?? 'singing-bowl')
-        setSoundVolume(settings.soundVolume ?? DEFAULT_BREATHING_SETTINGS.soundVolume)
+        // Migration: default to human-voice if user had old singing-bowl default
+        const savedProfile = settings.soundProfile ?? 'singing-bowl'
+        setSoundProfile(savedProfile === 'singing-bowl' ? 'human-voice' : savedProfile)
+        // Migration: reset volume to 30% if user had old 50% default
+        const savedVolume = settings.soundVolume ?? DEFAULT_BREATHING_SETTINGS.soundVolume
+        setSoundVolume(savedVolume >= 0.5 ? 0.3 : savedVolume)
         setHapticEnabled(settings.hapticEnabled ?? DEFAULT_BREATHING_SETTINGS.hapticEnabled)
         setDurationMinutes(settings.defaultDuration ?? DEFAULT_BREATHING_SETTINGS.defaultDuration)
         setMuteHoldPhases(settings.muteHoldPhases ?? DEFAULT_BREATHING_SETTINGS.muteHoldPhases)
