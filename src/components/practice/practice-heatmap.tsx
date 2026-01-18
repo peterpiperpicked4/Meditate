@@ -254,11 +254,11 @@ export function PracticeHeatmap({ sessions }: PracticeHeatmapProps) {
         {/* Day labels */}
         <div className="flex flex-col gap-0.5 mr-1.5 text-xs text-muted-foreground shrink-0" role="presentation" aria-hidden="true">
           <span className="h-3.5 sm:h-3"></span>
-          <span className="h-3.5 sm:h-3 leading-3 text-[10px]">Mon</span>
+          <span className="h-3.5 sm:h-3 leading-3 text-xs">Mon</span>
           <span className="h-3.5 sm:h-3"></span>
-          <span className="h-3.5 sm:h-3 leading-3 text-[10px]">Wed</span>
+          <span className="h-3.5 sm:h-3 leading-3 text-xs">Wed</span>
           <span className="h-3.5 sm:h-3"></span>
-          <span className="h-3.5 sm:h-3 leading-3 text-[10px]">Fri</span>
+          <span className="h-3.5 sm:h-3 leading-3 text-xs">Fri</span>
           <span className="h-3.5 sm:h-3"></span>
         </div>
 
