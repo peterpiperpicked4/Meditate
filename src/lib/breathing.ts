@@ -103,7 +103,7 @@ export const FULL_EXPERIENCE_CONFIG: FullExperienceConfig = {
   soundVolume: 0.25,
   ambientSound: 'rain',
   ambientVolume: 0.15,
-  musicTrackId: 'space-between',
+  musicTrackId: 'peace',
   musicVolume: 0.3,
   hapticEnabled: true,
   muteHoldPhases: true, // Pure silence during hold phases

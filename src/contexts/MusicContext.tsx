@@ -9,11 +9,12 @@ export interface MusicTrack {
 }
 
 export const MUSIC_TRACKS: MusicTrack[] = [
+  { id: 'peace', name: 'Peace', src: '/music/Peace.mp3' },
+  { id: 'at-rest', name: 'At Rest', src: '/music/At Rest.mp3' },
   { id: 'space-between', name: 'The Space Between', src: '/music/The Space Between.mp3' },
   { id: 'toward-stillness', name: 'Toward Stillness', src: '/music/Toward Stillness.mp3' },
   { id: 'the-pause', name: 'The Pause', src: '/music/The Pause.mp3' },
   { id: 'morning-mist', name: 'Morning Mist', src: '/music/Morning Mist.mp3' },
-  { id: 'peace', name: 'Peace', src: '/music/Peace.mp3' },
   { id: 'breathe', name: 'Breathe', src: '/music/Breathe.mp3' },
 ]
 
