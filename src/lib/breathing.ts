@@ -92,6 +92,7 @@ export interface FullExperienceConfig {
   musicTrackId: string
   musicVolume: number
   hapticEnabled: boolean
+  muteHoldPhases: boolean
 }
 
 export const FULL_EXPERIENCE_CONFIG: FullExperienceConfig = {
@@ -105,6 +106,7 @@ export const FULL_EXPERIENCE_CONFIG: FullExperienceConfig = {
   musicTrackId: 'space-between',
   musicVolume: 0.4,
   hapticEnabled: true,
+  muteHoldPhases: true, // Pure silence during hold phases
 }
 
 // ===== SIGNATURE EXPERIENCES =====
@@ -1118,7 +1120,7 @@ export const DEFAULT_BREATHING_SETTINGS: BreathingSettings = {
   soundVolume: 0.3,
   hapticEnabled: true,
   defaultDuration: 5,
-  muteHoldPhases: false,
+  muteHoldPhases: true,
   ambientSound: null,
   ambientVolume: 0.1,  // Default 10% volume
   rampEnabled: false,

@@ -314,9 +314,6 @@ function BreathePageContent() {
       hold2: 0,   // No hold after exhale
     }
 
-    console.log('🎯 FULL EXPERIENCE: Setting pattern with hold1:', targetPattern.hold1, 'hold2:', targetPattern.hold2)
-    console.log('🎯 Expected phases: inhale → hold1 → exhale (because hold1=7, hold2=0)')
-
     setPattern(targetPattern)
     setDurationMinutes(config.duration)
 
@@ -331,6 +328,9 @@ function BreathePageContent() {
 
     // Apply haptic setting
     setHapticEnabled(config.hapticEnabled)
+
+    // Apply mute hold phases setting
+    setMuteHoldPhases(config.muteHoldPhases)
 
     // Clear any preset/ramp settings
     setSelectedPreset(null)
