@@ -222,6 +222,10 @@ const config: Config = {
   },
   plugins: [
     require('@tailwindcss/typography'),
+    // Custom landscape variant for responsive design
+    function({ addVariant }: { addVariant: (name: string, rule: string) => void }) {
+      addVariant('landscape', '@media (orientation: landscape)')
+    },
   ],
 }
 

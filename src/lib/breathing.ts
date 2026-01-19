@@ -611,6 +611,7 @@ export const SOUND_PROFILES: SoundProfileInfo[] = [
 // Audio context singleton
 let audioContext: AudioContext | null = null
 let audioContextFailed = false
+let audioContextResumed = false // Track if we've already resumed this session
 
 export function getAudioContext(): AudioContext {
   if (audioContextFailed) {
@@ -624,6 +625,7 @@ export function getAudioContext(): AudioContext {
         throw new Error('AudioContext not supported')
       }
       audioContext = new AudioContextClass()
+      audioContextResumed = false // Reset flag for new context
     } catch (e) {
       audioContextFailed = true
       throw e
@@ -633,10 +635,22 @@ export function getAudioContext(): AudioContext {
 }
 
 // Resume audio context (needed for browser autoplay policy)
+// Only calls resume() once per session to avoid Promise spam
 function resumeAudio(ctx: AudioContext): void {
-  if (ctx.state === 'suspended') {
-    ctx.resume()
+  if (ctx.state === 'suspended' && !audioContextResumed) {
+    audioContextResumed = true
+    ctx.resume().then(() => {
+      debugLog('AudioContext', 'Resumed successfully')
+    }).catch((e) => {
+      audioContextResumed = false // Allow retry on failure
+      debugLog('AudioContext', 'Resume failed', e)
+    })
   }
+}
+
+// Reset the resumed flag (call when starting a new session)
+export function resetAudioContextState(): void {
+  audioContextResumed = false
 }
 
 // ===== SINGING BOWL =====
@@ -901,32 +915,22 @@ function playHumanVoice(phase: BreathPhase, volume: number): void {
 
   let fadeInterval: ReturnType<typeof setInterval> | null = null
   let halfDurationTimeout: ReturnType<typeof setTimeout> | null = null
+  let isCleanedUp = false
 
-  const cleanup = () => {
-    if (fadeInterval) {
-      clearInterval(fadeInterval)
-      fadeInterval = null
-    }
-    if (halfDurationTimeout) {
-      clearTimeout(halfDurationTimeout)
-      halfDurationTimeout = null
-    }
-    try {
-      audio.pause()
-      audio.src = ''
-    } catch {
-      // Already cleaned up
-    }
-  }
+  // Store listener references for removal
+  const onLoadedMetadata = () => {
+    if (isCleanedUp) return
 
-  // Wait for metadata to get duration, then play half
-  audio.addEventListener('loadedmetadata', () => {
     const halfDuration = audio.duration / 2
     const fadeOutDuration = Math.min(1.5, halfDuration * 0.5) // Fade over 1.5s or half of remaining
 
     audio.play().then(() => {
+      if (isCleanedUp) return
+
       // Start fade at half duration
       halfDurationTimeout = setTimeout(() => {
+        if (isCleanedUp) return
+
         const startVolume = audio.volume
         const fadeStartTime = Date.now()
         fadeInterval = setInterval(() => {
@@ -942,7 +946,36 @@ function playHumanVoice(phase: BreathPhase, volume: number): void {
     }).catch(() => {
       cleanup()
     })
-  })
+  }
+
+  const cleanup = () => {
+    if (isCleanedUp) return
+    isCleanedUp = true
+
+    if (fadeInterval) {
+      clearInterval(fadeInterval)
+      fadeInterval = null
+    }
+    if (halfDurationTimeout) {
+      clearTimeout(halfDurationTimeout)
+      halfDurationTimeout = null
+    }
+
+    // CRITICAL: Remove event listeners to prevent memory leak
+    audio.removeEventListener('loadedmetadata', onLoadedMetadata)
+    audio.removeEventListener('ended', cleanup)
+    audio.removeEventListener('error', cleanup)
+
+    try {
+      audio.pause()
+      audio.src = ''
+    } catch {
+      // Already cleaned up
+    }
+  }
+
+  // Wait for metadata to get duration, then play half
+  audio.addEventListener('loadedmetadata', onLoadedMetadata)
 
   // Cleanup on audio end as failsafe
   audio.addEventListener('ended', cleanup)
@@ -1259,17 +1292,30 @@ const AMBIENT_MP3_FILES: Partial<Record<AmbientSound, string>> = {
   river: '/music/River.mp3',
 }
 
-// Cache for ambient sound buffers (prevents regeneration on each start)
+// Cache for ambient sound buffers with LRU eviction (prevents unbounded memory growth)
 const ambientBufferCache = new Map<string, AudioBuffer>()
+const AMBIENT_CACHE_MAX_SIZE = 5 // Limit to 5 buffers (~7MB max)
 
-// Get cached buffer or generate new one
+// Get cached buffer or generate new one with LRU eviction
 function getAmbientBuffer(ctx: AudioContext, type: AmbientSound, duration: number = 4): AudioBuffer {
   const cacheKey = `${type}-${duration}-${ctx.sampleRate}`
 
-  // Return cached buffer if available and sample rate matches
+  // Return cached buffer if available (and move to end for LRU)
   const cached = ambientBufferCache.get(cacheKey)
   if (cached) {
+    // Move to end (most recently used)
+    ambientBufferCache.delete(cacheKey)
+    ambientBufferCache.set(cacheKey, cached)
     return cached
+  }
+
+  // Evict oldest entry if cache is full (LRU eviction)
+  if (ambientBufferCache.size >= AMBIENT_CACHE_MAX_SIZE) {
+    const oldestKey = ambientBufferCache.keys().next().value
+    if (oldestKey) {
+      ambientBufferCache.delete(oldestKey)
+      debugLog('Ambient', `Evicted oldest buffer from cache: ${oldestKey}`)
+    }
   }
 
   // Generate new buffer and cache it

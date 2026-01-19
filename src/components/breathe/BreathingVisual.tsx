@@ -25,6 +25,34 @@ export const BreathingVisual = React.memo(function BreathingVisual({
   isRunning,
   isPaused,
 }: BreathingVisualProps) {
+  // Track last announced values to prevent screen reader spam
+  const lastAnnouncedPhase = React.useRef<string>('')
+  const lastAnnouncedMinute = React.useRef<number>(-1)
+
+  // Determine what to announce for screen readers (throttled)
+  const getScreenReaderAnnouncement = React.useCallback(() => {
+    // Announce phase changes
+    if (phase !== lastAnnouncedPhase.current && phase !== 'idle') {
+      lastAnnouncedPhase.current = phase
+      if (phase === 'countdown') {
+        return 'Starting in 3 seconds'
+      }
+      return formatPhase(phase)
+    }
+
+    // For active session, only announce at minute boundaries
+    if (isRunning && phase !== 'countdown' && phase !== 'idle') {
+      const minutesRemaining = Math.floor(totalTimeRemaining / 60)
+      if (minutesRemaining !== lastAnnouncedMinute.current && minutesRemaining > 0) {
+        lastAnnouncedMinute.current = minutesRemaining
+        return `${minutesRemaining} minute${minutesRemaining > 1 ? 's' : ''} remaining`
+      }
+    }
+
+    return null
+  }, [phase, totalTimeRemaining, isRunning])
+
+  const announcement = getScreenReaderAnnouncement()
   // Calculate circle scale based on phase and progress
   const getCircleScale = () => {
     if (phase === 'idle' || phase === 'countdown') return 0.6
@@ -57,8 +85,8 @@ export const BreathingVisual = React.memo(function BreathingVisual({
 
   return (
     <div className="relative flex flex-col items-center justify-center">
-      {/* Main breathing circle container */}
-      <div className="relative w-64 h-64 sm:w-80 sm:h-80 flex items-center justify-center">
+      {/* Main breathing circle container - responsive for landscape mode */}
+      <div className="relative w-64 h-64 sm:w-80 sm:h-80 landscape:w-56 landscape:h-56 landscape:sm:w-64 landscape:sm:h-64 flex items-center justify-center">
         {/* Outer progress ring */}
         <svg
           className="absolute inset-0 -rotate-90"
@@ -145,8 +173,7 @@ export const BreathingVisual = React.memo(function BreathingVisual({
               <>
                 <span
                   className="text-5xl sm:text-6xl font-mono font-light text-primary"
-                  aria-live="polite"
-                  aria-atomic="true"
+                  aria-hidden="true"
                 >
                   {Math.ceil(phaseTimeRemaining)}
                 </span>
@@ -162,16 +189,14 @@ export const BreathingVisual = React.memo(function BreathingVisual({
               </>
             ) : (
               <>
-                {/* Phase time */}
-                <span className="text-4xl sm:text-5xl font-mono font-light text-foreground">
+                {/* Phase time - visual only, screen reader uses throttled announcements */}
+                <span className="text-4xl sm:text-5xl font-mono font-light text-foreground" aria-hidden="true">
                   {Math.ceil(phaseTimeRemaining)}
                 </span>
 
-                {/* Phase label - with ARIA live region for screen readers */}
+                {/* Phase label - visual only */}
                 <span
-                  role="status"
-                  aria-live="polite"
-                  aria-atomic="true"
+                  aria-hidden="true"
                   className={cn(
                     'mt-2 text-lg sm:text-xl font-display tracking-wide transition-colors duration-300',
                     phase === 'inhale' && 'text-primary',
@@ -216,6 +241,11 @@ export const BreathingVisual = React.memo(function BreathingVisual({
           </div>
         </div>
       )}
+
+      {/* Throttled live region for screen readers - announces phase changes and minute milestones only */}
+      <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+        {announcement && <span>{announcement}</span>}
+      </div>
 
       {/* Hidden live region for session completion announcement */}
       <div className="sr-only" aria-live="assertive" aria-atomic="true">

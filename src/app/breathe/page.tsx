@@ -547,7 +547,7 @@ function BreathePageContent() {
         />
       </div>
 
-      <div className="container relative py-6 sm:py-8 pb-24">
+      <div className="container relative py-6 sm:py-8 pb-24 pt-[max(1.5rem,env(safe-area-inset-top))] pb-[max(6rem,calc(4rem+env(safe-area-inset-bottom)))]">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <Link

@@ -1,10 +1,18 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import { Header } from '@/components/layout/header'
 import { Footer } from '@/components/layout/footer'
 import { AmbientParticles } from '@/components/ambient-particles'
 import { MusicProvider } from '@/contexts/MusicContext'
 import { MusicPlayer } from '@/components/MusicPlayer'
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+  userScalable: true,
+  viewportFit: 'cover', // Enables safe-area-inset CSS variables
+}
 
 export const metadata: Metadata = {
   title: {
