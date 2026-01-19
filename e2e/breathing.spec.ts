@@ -29,23 +29,23 @@ test.describe('Breathing Page', () => {
 
   test('should load the breathing page', async ({ page }) => {
     // Page should have loaded (title contains app name)
-    await expect(page).toHaveTitle(/zero|deep|mindfulness/i)
-    // Should see Full Experience button (the main one with gradient)
-    await expect(page.getByRole('button', { name: /Start Full Experience/i })).toBeVisible()
+    await expect(page).toHaveTitle(/zero.*deep|mindfulness/i)
+    // Should see Full Experience button - look for button with aria-label containing "Full Experience"
+    await expect(page.locator('button[aria-label*="Full Experience"]')).toBeVisible()
   })
 
   test('should start and show countdown', async ({ page }) => {
     // Click Full Experience button
-    const startButton = page.getByRole('button', { name: /Start Full Experience/i })
+    const startButton = page.locator('button[aria-label*="Full Experience"]')
     await startButton.click()
 
-    // Should show countdown (3, 2, 1)
-    await expect(page.getByText(/3|2|1|countdown/i)).toBeVisible({ timeout: 5000 })
+    // Should show countdown - look for "Get Ready" text that appears during countdown
+    await expect(page.getByText('Get Ready')).toBeVisible({ timeout: 5000 })
   })
 
   test('should transition through breathing phases', async ({ page }) => {
     // Start Full Experience
-    await page.getByRole('button', { name: /Start Full Experience/i }).click()
+    await page.locator('button[aria-label*="Full Experience"]').click()
 
     // Wait for session to start
     await waitForSessionStart(page)
@@ -62,28 +62,28 @@ test.describe('Breathing Page', () => {
 
   test('should pause and resume correctly', async ({ page }) => {
     // Start session
-    await page.getByRole('button', { name: /Start Full Experience/i }).click()
+    await page.locator('button[aria-label*="Full Experience"]').click()
     await waitForSessionStart(page)
 
     // Find and click pause button
     const pauseButton = page.getByRole('button', { name: /pause/i })
     await pauseButton.click()
 
-    // Should show paused state or play button
-    await expect(page.getByRole('button', { name: /play|resume|continue/i })).toBeVisible()
+    // Should show paused state - look for Resume button specifically (not Play background music)
+    await expect(page.getByRole('button', { name: 'Resume', exact: true })).toBeVisible()
 
     // Resume
-    await page.getByRole('button', { name: /play|resume|continue/i }).click()
+    await page.getByRole('button', { name: 'Resume', exact: true }).click()
 
     // Should be running again - verify by checking for breathing phases
     // Session should still be running - verify by checking page state
-const bodyText = await page.locator('body').textContent()
-expect(bodyText).toBeTruthy()
+    const bodyText = await page.locator('body').textContent()
+    expect(bodyText).toBeTruthy()
   })
 
   test('should handle spacebar for pause/resume', async ({ page }) => {
     // Start session
-    await page.getByRole('button', { name: /Start Full Experience/i }).click()
+    await page.locator('button[aria-label*="Full Experience"]').click()
     await waitForSessionStart(page)
 
     // Press space to pause
@@ -102,15 +102,15 @@ expect(bodyText).toBeTruthy()
 
   test('should stop session correctly', async ({ page }) => {
     // Start session
-    await page.getByRole('button', { name: /Start Full Experience/i }).click()
+    await page.locator('button[aria-label*="Full Experience"]').click()
     await waitForSessionStart(page)
 
-    // Find and click stop button
-    const stopButton = page.getByRole('button', { name: /stop/i })
-    await stopButton.click()
+    // Find and click End button (not "stop")
+    const endButton = page.getByRole('button', { name: /end/i })
+    await endButton.click()
 
     // Should return to start state
-    await expect(page.getByRole('button', { name: /Start Full Experience/i })).toBeVisible()
+    await expect(page.locator('button[aria-label*="Full Experience"]')).toBeVisible()
   })
 })
 
@@ -119,7 +119,7 @@ test.describe('Breathing Stress Tests', () => {
     await page.goto('/breathe?debug=1')
 
     // Start session
-    await page.getByRole('button', { name: /Start Full Experience/i }).click()
+    await page.locator('button[aria-label*="Full Experience"]').click()
     await waitForSessionStart(page)
 
     // Rapid pause/resume 20 times
@@ -160,7 +160,7 @@ expect(bodyText).toBeTruthy()
     await page.goto('/breathe?debug=1')
 
     // Start session
-    await page.getByRole('button', { name: /Start Full Experience/i }).click()
+    await page.locator('button[aria-label*="Full Experience"]').click()
     await waitForSessionStart(page)
 
     // Very rapid pause/resume 50 times
@@ -184,7 +184,7 @@ expect(bodyText).toBeTruthy()
     await page.goto('/breathe?debug=1')
 
     // Start session
-    await page.getByRole('button', { name: /Start Full Experience/i }).click()
+    await page.locator('button[aria-label*="Full Experience"]').click()
     await waitForSessionStart(page)
 
     // Record current state
@@ -215,7 +215,7 @@ expect(bodyText).toBeTruthy()
 
     for (let i = 0; i < 10; i++) {
       // Start session
-      await page.getByRole('button', { name: /Start Full Experience/i }).click()
+      await page.locator('button[aria-label*="Full Experience"]').click()
 
       // Wait for it to start
       await page.waitForTimeout(1000)
@@ -228,7 +228,7 @@ expect(bodyText).toBeTruthy()
     }
 
     // Should be back at start state without errors
-    await expect(page.getByRole('button', { name: /Start Full Experience/i })).toBeVisible()
+    await expect(page.locator('button[aria-label*="Full Experience"]')).toBeVisible()
   })
 })
 
@@ -246,7 +246,7 @@ test.describe('Audio Reliability Tests', () => {
     await page.goto('/breathe?debug=1')
 
     // Start session
-    await page.getByRole('button', { name: /Start Full Experience/i }).click()
+    await page.locator('button[aria-label*="Full Experience"]').click()
 
     // Wait for some breathing cycles
     await page.waitForTimeout(8000)
@@ -275,7 +275,7 @@ test.describe('Audio Reliability Tests', () => {
     await page.goto('/breathe?debug=1')
 
     // Start and do pause/resume cycles
-    await page.getByRole('button', { name: /Start Full Experience/i }).click()
+    await page.locator('button[aria-label*="Full Experience"]').click()
     await waitForSessionStart(page)
 
     for (let i = 0; i < 10; i++) {
@@ -295,7 +295,7 @@ test.describe('Timer Accuracy Tests', () => {
     await page.goto('/breathe?debug=1')
 
     // Start session
-    await page.getByRole('button', { name: /Start Full Experience/i }).click()
+    await page.locator('button[aria-label*="Full Experience"]').click()
     await waitForSessionStart(page)
 
     // Wait for at least one full breath cycle (4+7+8 = 19 seconds for 4-7-8)
@@ -313,7 +313,7 @@ test.describe('Timer Accuracy Tests', () => {
     await page.goto('/breathe?debug=1')
 
     // Start session with known duration
-    await page.getByRole('button', { name: /Start Full Experience/i }).click()
+    await page.locator('button[aria-label*="Full Experience"]').click()
     await waitForSessionStart(page)
 
     // Let it run for a bit
